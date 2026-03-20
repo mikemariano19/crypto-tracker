@@ -7,4 +7,4 @@ Route::get('/', function () {
     return view('home');
 });
 
-Route::get('/coins', [CoinController::class, 'index'])->name('coins.index');
+Route::get('/coins', [CoinController::class, 'index']);
