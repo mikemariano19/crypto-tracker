@@ -1,41 +1,80 @@
-<ul class="list bg-base-100 rounded-box shadow-md">
-  
-  <li class="p-4 pb-2 text-xs opacity-60 tracking-wide">Most played songs this week</li>
-  
-  <li class="list-row">
-    <div class="text-4xl font-thin opacity-30 tabular-nums">01</div>
-    <div><img class="size-10 rounded-box" src="https://img.daisyui.com/images/profile/demo/1@94.webp"/></div>
-    <div class="list-col-grow">
-      <div>Dio Lupa</div>
-      <div class="text-xs uppercase font-semibold opacity-60">Remaining Reason</div>
+<table class="w-full text-sm">
+    <thead>
+        <tr class="text-left border-b">
+            <th>#</th>
+            <th>Coin</th>
+            <th>Price</th>
+            <th>1h</th>
+            <th>24h</th>
+            <th>7d</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        @foreach ($coins ?? [] as $coin)
+            @php
+                $change1h = $coin['price_change_percentage_1h_in_currency'] ?? 0;
+                $change24h = $coin['price_change_percentage_24h'] ?? 0;
+                $change7d = $coin['price_change_percentage_7d_in_currency'] ?? 0;
+            @endphp
+
+            <tr class="border-b hover:bg-gray-50">
+
+                {{-- Rank --}}
+                <td>{{ $coin['market_cap_rank'] ?? 'N/A' }}</td>
+
+                {{-- Coin --}}
+                <td class="flex items-center gap-2 py-2">
+                    <img 
+                        src="{{ $coin['image'] ?? 'https://via.placeholder.com/20' }}" 
+                        width="20"
+                    >
+                    <span>
+                        {{ $coin['name'] ?? 'Unknown' }}
+                        <span class="text-gray-500">
+                            {{ strtoupper($coin['symbol'] ?? '') }}
+                        </span>
+                    </span>
+                </td>
+
+                {{-- Price --}}
+                <td>
+                    ${{ number_format($coin['current_price'] ?? 0, 2) }}
+                </td>
+
+                {{-- 1h --}}
+                <td class="{{ $change1h > 0 ? 'text-green-500' : ($change1h < 0 ? 'text-red-500' : 'text-gray-500') }}">
+                    {{ number_format($change1h, 2) }}%
+                </td>
+
+                {{-- 24h --}}
+                <td class="{{ $change24h > 0 ? 'text-green-500' : ($change24h < 0 ? 'text-red-500' : 'text-gray-500') }}">
+                    {{ number_format($change24h, 2) }}%
+                </td>
+
+                {{-- 7d --}}
+                <td class="{{ $change7d > 0 ? 'text-green-500' : ($change7d < 0 ? 'text-red-500' : 'text-gray-500') }}">
+                    {{ number_format($change7d, 2) }}%
+                </td>
+
+            </tr>
+        @endforeach
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+{{-- <div class="flex items-center gap-4 p-4 border rounded">
+        <img src="{{ $coin['image'] }}" alt="{{ $coin['name'] }}" class="w-10 h-10">
+        <div>
+            <h2 class="font-bold text-lg">{{ $coin['name'] }} ({{ strtoupper($coin['symbol']) }})</h2>
+            <p class="text-gray-600">Price: ${{ number_format($coin['current_price'], 2) }}</p>
+            <p class="text-gray-600">Market Cap: ${{ number_format($coin['market_cap'], 0) }}</p>
+        </div>
     </div>
-    <button class="btn btn-square btn-ghost">
-      <svg class="size-[1.2em]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g stroke-linejoin="round" stroke-linecap="round" stroke-width="2" fill="none" stroke="currentColor"><path d="M6 3L20 12 6 21 6 3z"></path></g></svg>
-    </button>
-  </li>
-  
-  <li class="list-row">
-    <div class="text-4xl font-thin opacity-30 tabular-nums">02</div>
-    <div><img class="size-10 rounded-box" src="https://img.daisyui.com/images/profile/demo/4@94.webp"/></div>
-    <div class="list-col-grow">
-      <div>Ellie Beilish</div>
-      <div class="text-xs uppercase font-semibold opacity-60">Bears of a fever</div>
-    </div>
-    <button class="btn btn-square btn-ghost">
-      <svg class="size-[1.2em]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g stroke-linejoin="round" stroke-linecap="round" stroke-width="2" fill="none" stroke="currentColor"><path d="M6 3L20 12 6 21 6 3z"></path></g></svg>
-    </button>
-  </li>
-  
-  <li class="list-row">
-    <div class="text-4xl font-thin opacity-30 tabular-nums">03</div>
-    <div><img class="size-10 rounded-box" src="https://img.daisyui.com/images/profile/demo/3@94.webp"/></div>
-    <div class="list-col-grow">
-      <div>Sabrino Gardener</div>
-      <div class="text-xs uppercase font-semibold opacity-60">Cappuccino</div>
-    </div>
-    <button class="btn btn-square btn-ghost">
-      <svg class="size-[1.2em]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g stroke-linejoin="round" stroke-linecap="round" stroke-width="2" fill="none" stroke="currentColor"><path d="M6 3L20 12 6 21 6 3z"></path></g></svg>
-    </button>
-  </li>
-  
-</ul>
+     --}}
