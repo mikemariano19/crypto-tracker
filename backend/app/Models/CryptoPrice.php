@@ -11,8 +11,13 @@ class CryptoPrice extends Model
     use HasFactory;
 
     protected $fillable = [
-        'coin',
+        'name',
+        'symbol',
         'price',
-        'currency',
+        'market_cap',
+        'volume_24h',
+        'percent_change_1h',
+        'percent_change_24h',
+        'percent_change_7d',
     ];
 }
