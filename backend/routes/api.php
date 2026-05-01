@@ -6,7 +6,8 @@ use App\Http\Controllers\CryptoPriceController;
 
 
 Route::get('/', function () {
-    return response()->json(['status' => 'Laravel is running']);
+    view()->share('title', 'Crypto Dashboard');
+    return response()->json(['message' => 'Hello from Laravel HOME']);
 });
 
 Route::get('/test', function () {
