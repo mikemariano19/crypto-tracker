@@ -22,6 +22,7 @@ class CryptoPriceController extends Controller
                         'order'       => 'market_cap_desc',
                         'per_page'    => 50,
                         'price_change_percentage' => '1h,24h,7d',
+                        'market_cap_desc' => 'true',
                     ]
                 );
 
