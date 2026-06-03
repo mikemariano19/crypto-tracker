@@ -21,4 +21,4 @@ Route::get('/prices', function () {
 
 Route::get('/coins', [CryptoPriceController::class, 'index']);
 
-Route::get('/market-stats', [TotalMarketCap::class, 'TotalMarketCap']);
+Route::get('/market-stats', [TotalMarketCap::class, 'index']);

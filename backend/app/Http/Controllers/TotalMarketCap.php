@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Http;
 
 class TotalMarketCap extends Controller
 {
-    public function TotalMarketCap()
+    public function index()
     {
         $response = Http::timeout(10)->get('https://api.coingecko.com/api/v3/global');
 
