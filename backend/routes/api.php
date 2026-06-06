@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CryptoPriceController;
-use App\Http\Controllers\TotalMarketCap;
+use App\Http\Controllers\MarketController;
 
 
 Route::get('/', function () {
@@ -21,4 +21,6 @@ Route::get('/prices', function () {
 
 Route::get('/coins', [CryptoPriceController::class, 'index']);
 
-Route::get('/market-stats', [TotalMarketCap::class, 'index']);
+Route::get('/market-stats', [MarketController::class, 'global']);
+Route::get('/trending', [MarketController::class, 'trending']);
+
