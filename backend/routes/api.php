@@ -15,9 +15,6 @@ Route::get('/test', function () {
     return response()->json(['message' => 'Hello from Laravel']);
 });
 
-Route::get('/prices', function () {
-    return response()->json(Cache::get([CryptoPriceController::class, 'index']));
-});
 
 Route::get('/coins', [CryptoPriceController::class, 'index']);
 
