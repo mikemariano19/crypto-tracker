@@ -62,42 +62,47 @@ class MarketController extends Controller
 
 
 
-   public function trending()
-{
-    $cacheKey = 'market_trending';
+public function trending()
+    {
+        $cacheKey = 'market_trending';
 
-    try {
-        $response = Http::timeout(10)
-            ->get('https://api.coingecko.com/api/v3/search/trending');
+        try {
+            $response = Http::timeout(10)
+                ->get('https://api.coingecko.com/api/v3/search/trending');
 
-        if ($response->successful()) {
+            if ($response->successful()) {
 
-            $result = [
-                'success' => true,
-                'data' => $response->json(),
-                'cached_at' => now()->toISOString(),
-            ];
+                $coins = collect($response->json('coins'))
+                    ->take(5)
+                    ->values()
+                    ->all();
 
-            Cache::put($cacheKey, $result, 3600);
+                $result = [
+                    'success' => true,
+                    'coins' => $coins,
+                    'cached_at' => now()->toISOString(),
+                ];
 
-            return response()->json($result);
+                Cache::put($cacheKey, $result, 3600);
+
+                return response()->json($result);
+            }
+
+        } catch (\Exception $e) {
+            // ignore error
         }
 
-    } catch (\Exception $e) {
-        // ignore
+        // fallback cache
+        if (Cache::has($cacheKey)) {
+            $cached = Cache::get($cacheKey);
+            $cached['from_cache'] = true;
+
+            return response()->json($cached);
+        }
+
+        return response()->json([
+            'success' => false,
+            'error' => 'No data available.',
+        ], 503);
     }
-
-    // fallback cache
-    if (Cache::has($cacheKey)) {
-        $cached = Cache::get($cacheKey);
-        $cached['from_cache'] = true;
-
-        return response()->json($cached);
-    }
-
-    return response()->json([
-        'success' => false,
-        'error' => 'No data available.',
-    ], 503);
-}
 }
