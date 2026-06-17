@@ -73,7 +73,7 @@ public function trending()
             if ($response->successful()) {
 
                 $coins = collect($response->json('coins'))
-                    ->take(5)
+                    ->take(3)
                     ->values()
                     ->all();
 
