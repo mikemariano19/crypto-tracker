@@ -1,4 +1,4 @@
-import { useTrendingCoins } from "@/hooks/useTrending";
+import { useTopGainers } from "@/hooks/useTopGainers";
 import Image from "next/image";
 
 import {
@@ -11,18 +11,18 @@ import {
 import { ArrowUp, ArrowDown } from "lucide-react";
 
 export default function Trending() {
-  const { coins } = useTrendingCoins();
+  const { coins } = useTopGainers();
 
   return (
-    <Card className="mx-auto h-48.75 w-full max-w-md mb-4">
+    <Card className="mx-auto h-48.75 w-full max-w-md">
       <CardHeader>
         <CardTitle className="text-gray-600 font-semibold">
-          Trending
+          Top Gainers
         </CardTitle>
 
         <CardDescription className="space-y-3">
           {coins?.map((coin) => {
-            const isPositive = coin.changePercentage >= 0;
+            const isPositive = coin.price_change_percentage_24h >= 0;
 
             return (
               <div
@@ -68,7 +68,7 @@ export default function Trending() {
                     <ArrowDown className="h-4 w-4" />
                   )}
 
-                  {Math.abs(coin.changePercentage).toFixed(2)}%
+                  {Math.abs(coin.price_change_percentage_24h).toFixed(2)}%
                 </div>
               </div>
             );

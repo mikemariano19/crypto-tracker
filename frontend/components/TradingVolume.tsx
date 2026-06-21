@@ -21,7 +21,7 @@ export default function TradingVolume() {
           <CardTitle className="text-gray-600 font-semibold">Trading Volume</CardTitle>
         </div>
 
-        <CardDescription className="text-2xl font-bold text-foreground">
+        <CardDescription className="text-2xl md:text-xl font-bold text-foreground">
           {volume_24h?.toLocaleString(undefined, { maximumFractionDigits: 0 }) || "Loading..."}
         </CardDescription>
       </CardHeader>

@@ -41,7 +41,7 @@ export default function MarketCap() {
           )}
         </div>
 
-        <CardDescription className="text-2xl font-bold text-foreground">
+        <CardDescription className="text-2xl md:text-xl font-bold text-foreground">
           {marketCap ? marketCap : "Loading..."}
         </CardDescription>
       </CardHeader>

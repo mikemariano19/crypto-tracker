@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CryptoPriceController;
 use App\Http\Controllers\MarketController;
+use App\Http\Controllers\TopGainerController;
 
 
 Route::get('/', function () {
@@ -16,6 +17,8 @@ Route::get('/test', function () {
 
 
 Route::get('/coins', [CryptoPriceController::class, 'index']);
+Route::get('/top-gainers', [TopGainerController::class, 'index']);
+
 
 Route::get('/market-stats', [MarketController::class, 'global']);
 Route::get('/trending', [MarketController::class, 'trending']);

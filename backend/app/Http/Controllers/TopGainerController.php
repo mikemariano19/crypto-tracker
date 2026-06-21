@@ -6,12 +6,12 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
-class CryptoPriceController extends Controller
+class TopGainerController extends Controller
 {
     public function index()
     {
-        $cacheKey = 'coins';
-        $staleCacheKey = 'coins_stale';
+        $cacheKey = 'top-gainers';
+        $staleCacheKey = 'top-gainers_stale';
 
         try {
             $data = Cache::remember($cacheKey, 60, function () use ($staleCacheKey) {
@@ -20,13 +20,21 @@ class CryptoPriceController extends Controller
                     [
                         'vs_currency' => 'usd',
                         'order'       => 'market_cap_desc',
-                        'per_page'    => 50,
+                        'per_page'    => 1000,
                         'price_change_percentage' => '1h,24h,7d',
                         'market_cap_desc' => 'true',
                     ]
                 );
 
                 $json = $response->json();
+
+                // Sort descending by 24h %
+                usort($json, function ($a, $b) {
+                    return $b['price_change_percentage_24h'] <=> $a['price_change_percentage_24h'];
+                });
+
+                // Top 10 gainers
+                $topGainers = array_slice($json, 0, 3);
 
 
                 if (!$response->successful() || !is_array($json) || empty($json)) {
@@ -40,7 +48,10 @@ class CryptoPriceController extends Controller
                 // Save a long-lived stale copy as fallback
                 Cache::put($staleCacheKey, $json, now()->addHours(24));
 
-                return $json;
+                return response()->json([
+                    'success' => true,
+                    'data'    => $topGainers,
+                ]);
             });
 
             // If fresh fetch failed, fall back to stale data
@@ -62,7 +73,7 @@ class CryptoPriceController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('CryptoPriceController error', ['message' => $e->getMessage()]);
+            Log::error('TopGainerController error', ['message' => $e->getMessage()]);
 
             $stale = Cache::get($staleCacheKey);
 
