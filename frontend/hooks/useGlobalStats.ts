@@ -25,7 +25,7 @@ const fetcher = async (url: string): Promise<MarketCap> => {
     const json: ApiResponse = await res.json();
 
     if (!json.success) {
-        throw new Error(json.error || 'Failed to fetch market stats');
+        throw new Error(json.error || 'Failed to fetch global stats');
     }
 
     return json.data;
@@ -37,21 +37,23 @@ export default function useGlobalStats() {
         revalidateOnFocus: false,
         keepPreviousData: true,  // ← key: never wipe existing data on refetch
         onError: (err) => {
-            console.warn('Market stats fetch failed:', err.message);
+            console.warn('Global stats fetch failed:', err.message);
         }
     });
     
 
-    console.log('Market stats API response:', data);
+    if(data){
+        console.log('Global stats API response:', data);
+    }
 
     useEffect(() => {
-        const channel = getEcho().channel('market-stats');
-        channel.listen('.market-stats.updated', (event: { stats: MarketCap }) => {
+        const channel = getEcho().channel('global-stats');
+        channel.listen('.global-stats.updated', (event: { stats: MarketCap }) => {
             mutate(event.stats, false); // update cache without refetch
         });
 
         return () => {
-            channel.stopListening('.market-stats.updated');
+            channel.stopListening('.global-stats.updated');
         };
     }, [mutate]);
 

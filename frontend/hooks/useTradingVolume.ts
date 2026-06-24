@@ -35,7 +35,9 @@ export function useTradingVolume() {
     });
     
 
-    console.log('Trading volume API response:', data);
+    if(data){
+        console.log('Trading volume API response:', data);
+    }
 
     useEffect(() => {
         const channel = getEcho().channel('trading-volume');

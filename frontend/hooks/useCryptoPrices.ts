@@ -50,7 +50,9 @@ export function useCryptoPrices() {
     });
 
     
-    console.log('API response:', data);
+    if(data){
+        console.log('API response:', data);
+    }
     
     useEffect(() => {
         const channel = getEcho().channel('crypto-prices');

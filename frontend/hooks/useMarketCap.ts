@@ -39,7 +39,9 @@ export function useMarketCap() {
     });
     
 
-    console.log('Market stats API response:', data);
+    if(data){
+        console.log('Market stats API response:', data);
+    }
 
     useEffect(() => {
         const channel = getEcho().channel('market-stats');
