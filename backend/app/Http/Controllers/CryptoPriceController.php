@@ -15,6 +15,7 @@ class CryptoPriceController extends Controller
 
         try {
             $data = Cache::remember($cacheKey, 60, function () use ($staleCacheKey) {
+                Log::info('fetching from coingecko');
                 $response = Http::timeout(10)->get(
                     'https://api.coingecko.com/api/v3/coins/markets',
                     [
@@ -57,6 +58,7 @@ class CryptoPriceController extends Controller
 
             return response()->json([
                 'success' => true,
+                'source' => Cache::has('crypto-prices') ? 'cache' : 'coingecko',
                 'data'    => $data,
                 'cached_at' => now()->toISOString(),
             ]);

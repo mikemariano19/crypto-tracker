@@ -11,6 +11,7 @@ type MarketCap = {
 
 interface ApiResponse {
     success: boolean;
+    source: string;
     data: MarketCap;
     stale?: boolean;
     cached_at?: string;

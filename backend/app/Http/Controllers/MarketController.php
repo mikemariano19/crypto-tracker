@@ -5,24 +5,34 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
 
-
 class MarketController extends Controller
 {
-   public function global()
-{
-    $cacheKey = 'market_global';
-    $cacheTTL = 60; // 1 minute cache
+    public function global()
+    {
+        $cacheKey = 'market_global';
+        $cacheTTL = 60; // seconds
 
-    try {
-        $response = Http::timeout(10)
-            ->get('https://api.coingecko.com/api/v3/global');
+        // Return cached data first
+        if (Cache::has($cacheKey)) {
+            $cached = Cache::get($cacheKey);
+            $cached['source'] = 'cache';
 
-        if ($response->successful() && isset($response->json()['data'])) {
+            return response()->json($cached);
+        }
+
+        try {
+            $response = Http::timeout(10)
+                ->get('https://api.coingecko.com/api/v3/global');
+
+            if (!$response->successful()) {
+                throw new \Exception('CoinGecko request failed');
+            }
 
             $data = $response->json()['data'];
 
             $result = [
                 'success' => true,
+                'source' => 'coingecko',
                 'data' => [
                     'market_cap' => $data['total_market_cap']['usd'],
                     'volume_24h' => $data['total_volume']['usd'],
@@ -34,75 +44,77 @@ class MarketController extends Controller
                 'cached_at' => now()->toISOString(),
             ];
 
-            // store latest good data
-            Cache::put($cacheKey, $result, 3600); // keep backup for 1 hour
+            Cache::put($cacheKey, $result, now()->addSeconds($cacheTTL));
 
             return response()->json($result);
+
+        } catch (\Exception $e) {
+
+            // fallback if cache somehow exists
+            if (Cache::has($cacheKey)) {
+                $cached = Cache::get($cacheKey);
+                $cached['source'] = 'cache-fallback';
+
+                return response()->json($cached);
+            }
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Unable to fetch market stats',
+            ], 503);
         }
-    } catch (\Exception $e) {
-        // ignore error, fallback below
     }
 
-    // fallback to cache
-    if (Cache::has($cacheKey)) {
-        $cached = Cache::get($cacheKey);
-
-        $cached['success'] = true;
-        $cached['from_cache'] = true;
-
-        return response()->json($cached);
-    }
-
-    // last resort fallback
-    return response()->json([
-        'success' => false,
-        'error' => 'Unable to fetch data and no cache available.',
-    ], 503);
-}
-
-
-
-public function trending()
+    public function trending()
     {
         $cacheKey = 'market_trending';
+        $cacheTTL = 300; // 5 minutes
+
+        // Return cache first
+        if (Cache::has($cacheKey)) {
+            $cached = Cache::get($cacheKey);
+            $cached['source'] = 'cache';
+
+            return response()->json($cached);
+        }
 
         try {
             $response = Http::timeout(10)
                 ->get('https://api.coingecko.com/api/v3/search/trending');
 
-            if ($response->successful()) {
-
-                $coins = collect($response->json('coins'))
-                    ->take(3)
-                    ->values()
-                    ->all();
-
-                $result = [
-                    'success' => true,
-                    'coins' => $coins,
-                    'cached_at' => now()->toISOString(),
-                ];
-
-                Cache::put($cacheKey, $result, 3600);
-
-                return response()->json($result);
+            if (!$response->successful()) {
+                throw new \Exception('CoinGecko request failed');
             }
 
+            $coins = collect($response->json('coins'))
+                ->take(3)
+                ->values()
+                ->all();
+
+            $result = [
+                'success' => true,
+                'source' => 'coingecko',
+                'coins' => $coins,
+                'cached_at' => now()->toISOString(),
+            ];
+
+            Cache::put($cacheKey, $result, now()->addSeconds($cacheTTL));
+
+            return response()->json($result);
+
         } catch (\Exception $e) {
-            // ignore error
+
+            if (Cache::has($cacheKey)) {
+                $cached = Cache::get($cacheKey);
+                $cached['source'] = 'cache-fallback';
+
+                return response()->json($cached);
+            }
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Unable to fetch trending coins',
+            ], 503);
         }
-
-        // fallback cache
-        if (Cache::has($cacheKey)) {
-            $cached = Cache::get($cacheKey);
-            $cached['from_cache'] = true;
-
-            return response()->json($cached);
-        }
-
-        return response()->json([
-            'success' => false,
-            'error' => 'No data available.',
-        ], 503);
     }
 }
