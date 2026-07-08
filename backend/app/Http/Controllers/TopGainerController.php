@@ -14,7 +14,7 @@ class TopGainerController extends Controller
         $staleCacheKey = 'top-gainers_stale';
 
         try {
-            $data = Cache::remember($cacheKey, 60, function () use ($staleCacheKey) {
+            $data = Cache::remember($cacheKey, 360, function () use ($staleCacheKey) {
                 $response = Http::timeout(10)->get(
                     'https://api.coingecko.com/api/v3/coins/markets',
                     [

@@ -16,7 +16,7 @@ export default function Trending() {
   return (
     <Card className="mx-auto h-47 w-full max-w-md mb-4">
       <CardHeader>
-        <CardTitle className="text-gray-600 font-semibold">
+        <CardTitle className="text-gray-800 font-semibold">
           Trending
         </CardTitle>
 
@@ -42,15 +42,13 @@ export default function Trending() {
                   <div>
                     <p className="font-medium text-foreground">
                       {coin.name}
+                      <p className="text-xs mr-1 text-muted-foreground">${coin.price.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </p>
                     </p>
 
-                    <p className="text-xs text-muted-foreground">
-                      {coin.symbol.toUpperCase()} · $
-                      {coin.price.toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </p>
                   </div>
                 </div>
 
@@ -58,10 +56,10 @@ export default function Trending() {
                 <div
                   className={`flex items-center text-sm font-semibold ${
                     isPositive
-                      ? "text-green-500"
-                      : "text-red-500"
+                    ? "text-green-500"
+                    : "text-red-500"
                   }`}
-                >
+                  >
                   {isPositive ? (
                     <ArrowUp className="h-4 w-4" />
                   ) : (

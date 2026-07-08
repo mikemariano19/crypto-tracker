@@ -48,82 +48,82 @@ export default function CryptoTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {prices.map((coin, index) => (
-              <TableRow className="md:pr-2 bg-white" key={coin.id}>
-                {/* ✅ Sticky # cell */}
-                <TableCell className="sticky left-0 z-20 p-2 bg-white text-center text-gray-500 text-sm">
-                  {index + 1}
-                </TableCell>
+               {prices.map((coin, index) => (
+                <TableRow className="md:pr-2 bg-white  group-hover:bg-red-500 transition-colors" key={coin.id}>
+                  {/* ✅ Sticky # cell */}
+                  <TableCell className="sticky left-0 z-20 p-2 text-center text-gray-500 text-sm bg-white">
+                    {index + 1}
+                  </TableCell>
 
-                {/* ✅ Sticky Coin cell — no flex! use inline-flex on inner div */}
-                <TableCell className="sticky left-8.5 min-w-10 max-w-10 z-10 bg-white">
-                  <div className="flex items-center gap-2">
-                    <Image
-                      alt={coin.name}
-                      width={24}
-                      height={24}
-                      src={coin.image}
-                    />
-                    <div className="flex flex-col leading-tight ">
-                      <span className="font-semibold text-sm whitespace-pre-wrap">
-                        {coin.name}
-                      </span>
-                      <span className="text-xs text-gray-400 uppercase">
-                        {coin.symbol}
-                      </span>
+                  {/* ✅ Sticky Coin cell — no flex! use inline-flex on inner div */}
+                  <TableCell className="sticky left-8.5 min-w-10 max-w-10 z-10 bg-white">
+                    <div className="flex items-center gap-2">
+                      <Image
+                        alt={coin.name}
+                        width={24}
+                        height={24}
+                        src={coin.image}
+                      />
+                      <div className="flex flex-col leading-tight ">
+                        <span className="font-semibold text-sm whitespace-pre-wrap">
+                          {coin.name}
+                        </span>
+                        <span className="text-xs text-gray-400 uppercase">
+                          {coin.symbol}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </TableCell>
+                  </TableCell>
 
-                <TableCell className="text-right whitespace-nowrap">
-                  ${coin.current_price.toLocaleString()}
-                </TableCell>
+                  <TableCell className="text-right whitespace-nowrap">
+                    ${coin.current_price.toLocaleString()}
+                  </TableCell>
 
-                <TableCell
-                  className="text-right font-medium whitespace-nowrap"
-                  style={{
-                    color:
-                      (coin.price_change_percentage_1h_in_currency ?? 0) > 0
-                        ? "#16a34a"
-                        : "#dc2626",
-                  }}
-                >
-                  {coin.price_change_percentage_1h_in_currency?.toFixed(2)}%
-                </TableCell>
+                  <TableCell
+                    className="text-right font-medium whitespace-nowrap"
+                    style={{
+                      color:
+                        (coin.price_change_percentage_1h_in_currency ?? 0) > 0
+                          ? "#16a34a"
+                          : "#dc2626",
+                    }}
+                  >
+                    {coin.price_change_percentage_1h_in_currency?.toFixed(2)}%
+                  </TableCell>
 
-                <TableCell
-                  className="text-right font-medium whitespace-nowrap"
-                  style={{
-                    color:
-                      (coin.price_change_percentage_24h ?? 0) > 0
-                        ? "#16a34a"
-                        : "#dc2626",
-                  }}
-                >
-                  {coin.price_change_percentage_24h?.toFixed(2)}%
-                </TableCell>
+                  <TableCell
+                    className="text-right font-medium whitespace-nowrap"
+                    style={{
+                      color:
+                        (coin.price_change_percentage_24h ?? 0) > 0
+                          ? "#16a34a"
+                          : "#dc2626",
+                    }}
+                  >
+                    {coin.price_change_percentage_24h?.toFixed(2)}%
+                  </TableCell>
 
-                <TableCell
-                  className="text-right font-medium whitespace-nowrap"
-                  style={{
-                    color:
-                      (coin.price_change_percentage_7d_in_currency ?? 0) > 0
-                        ? "#16a34a"
-                        : "#dc2626",
-                  }}
-                >
-                  {coin.price_change_percentage_7d_in_currency?.toFixed(2)}%
-                </TableCell>
+                  <TableCell
+                    className="text-right font-medium whitespace-nowrap"
+                    style={{
+                      color:
+                        (coin.price_change_percentage_7d_in_currency ?? 0) > 0
+                          ? "#16a34a"
+                          : "#dc2626",
+                    }}
+                  >
+                    {coin.price_change_percentage_7d_in_currency?.toFixed(2)}%
+                  </TableCell>
 
-                <TableCell className="text-right whitespace-nowrap">
-                  ${coin.total_volume.toLocaleString()}
-                </TableCell>
+                  <TableCell className="text-right whitespace-nowrap">
+                    ${coin.total_volume.toLocaleString()}
+                  </TableCell>
 
-                <TableCell className="text-right whitespace-nowrap">
-                  ${coin.market_cap.toLocaleString()}
-                </TableCell>
-              </TableRow>
-            ))}
+                  <TableCell className="text-right whitespace-nowrap">
+                    ${coin.market_cap.toLocaleString()}
+                  </TableCell>
+                </TableRow>
+              ))}
           </TableBody>
         </Table>
       </div>
