@@ -16,7 +16,7 @@ export default function Trending() {
   return (
     <Card className="mx-auto h-47 w-full max-w-md">
       <CardHeader>
-        <CardTitle className="text-gray-800 font-semibold">
+        <CardTitle className="text-gray-700 font-semibold">
           Top Gainers
         </CardTitle>
 
@@ -42,14 +42,12 @@ export default function Trending() {
                   <div>
                     <p className="font-medium text-foreground">
                       {coin.name}
-                      <p className="text-xs mr-1 text-muted-foreground">
-                      ${coin.price.toLocaleString(undefined, {
+                      </p>
+                      <p className="text-xs mr-1 text-muted-foreground">${coin.price.toLocaleString(undefined, {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}
-                      </p>
                     </p>
-
                   </div>
                 </div>
 

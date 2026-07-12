@@ -22,7 +22,7 @@ export default function MarketCap() {
     <Card className="w-full max-w-md">
       <CardHeader>
         <div className="flex items-center gap-2">
-          <CardTitle className="text-gray-600 font-semibold">Market Cap</CardTitle>
+          <CardTitle className="text-gray-700 font-semibold">Market Cap</CardTitle>
 
           {!isLoading && (
             <div

@@ -1,3 +1,4 @@
+"use client";
 import { useCryptoPrices } from "@/hooks/useCryptoPrices";
 import Image from "next/image";
 import {
@@ -8,9 +9,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
+import { useRouter } from "next/navigation";
+import CoinDetails from "../app/coin/[id]/page";
 export default function CryptoTable() {
   const { prices, isLoading, isError } = useCryptoPrices();
+  const router = useRouter();
 
   if (isLoading && prices.length === 0) {
     return <div className="text-center py-10">Loading prices...</div>;
@@ -29,14 +32,14 @@ export default function CryptoTable() {
       <div className="overflow-x-auto rounded-lg border border-gray-200">
         <Table className="min-w-40 w-full border-collapse">
           
-          <TableHeader className="bg-white">
+          <TableHeader className="bg-white z-50">
             <TableRow>
               {/* ✅ Sticky # column */}
-              <TableHead className="sticky left-0 z-20 bg-white w-8 text-center">
+              <TableHead className="sticky left-0 z-30  w-8 text-center">
                 #
               </TableHead>
               {/* ✅ Sticky Coin column — offset by width of # column (~40px) */}
-              <TableHead className="sticky left-8.5 min-w-40 z-20 bg-white">
+              <TableHead className="sticky left-8.5 min-w-40 z-30 ">
                 Coin
               </TableHead>
               <TableHead className="text-right">Price</TableHead>
@@ -44,19 +47,22 @@ export default function CryptoTable() {
               <TableHead className="text-right">24h %</TableHead>
               <TableHead className="text-right">7d %</TableHead>
               <TableHead className="text-right whitespace-nowrap">24h Volume</TableHead>
-              <TableHead className="text-right whitespace-nowrap">Market Cap</TableHead>
+              <TableHead className="text-right whitespace-nowrap pr-3">Market Cap</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
                {prices.map((coin, index) => (
-                <TableRow className="md:pr-2 bg-white  group-hover:bg-red-500 transition-colors" key={coin.id}>
+                <TableRow className="md:pr-2 bg-white hover:bg-gray-100 transition-colors hover:cursor-pointer" 
+                key={coin.id}
+                onClick={() => router.push(`/coin/${coin.id}`)}
+                >
                   {/* ✅ Sticky # cell */}
-                  <TableCell className="sticky left-0 z-20 p-2 text-center text-gray-500 text-sm bg-white">
+                  <TableCell className="sticky left-0 z-50 p-2 text-center text-gray-500 text-sm ">
                     {index + 1}
                   </TableCell>
 
                   {/* ✅ Sticky Coin cell — no flex! use inline-flex on inner div */}
-                  <TableCell className="sticky left-8.5 min-w-10 max-w-10 z-10 bg-white">
+                  <TableCell className="sticky left-8.5 min-w-10 max-w-10 z-50 ">
                     <div className="flex items-center gap-2">
                       <Image
                         alt={coin.name}
@@ -119,7 +125,7 @@ export default function CryptoTable() {
                     ${coin.total_volume.toLocaleString()}
                   </TableCell>
 
-                  <TableCell className="text-right whitespace-nowrap">
+                  <TableCell className="text-right whitespace-nowrap pr-3">
                     ${coin.market_cap.toLocaleString()}
                   </TableCell>
                 </TableRow>
