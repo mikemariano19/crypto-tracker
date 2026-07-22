@@ -9,7 +9,7 @@ import GlobalStats from "@/components/GlobalStats";
 
 export default function Home() {
   return (
-    <div className="bg-gray-50">
+    <div className="sm:mx-2 md:mx-4 lg:mx-auto">
       <div className="container flex justify-center max-w-4xl mx-auto font-light text-sm">
         <GlobalStats />
       </div>
@@ -19,15 +19,15 @@ export default function Home() {
         </div>
       </div>
       <div className="mx-auto max-w-4xl p-2">
-        <div className="grid grid-cols-1 md:grid-cols-3 md:gap-x-4">
-            <span className="md:col-span-1 gap-x-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 md:gap-x-4">
+            <span className="col-span-1 hidden lg:block gap-x-8">
               <MarketCap />
               <TradingVolume />
             </span>
-            <span className="md:col-span-1">
+            <span className="col-span-1">
               <Trending />
             </span>
-             <span className="md:col-span-1">
+             <span className="col-span-1">
               <TopGainers />
             </span>
         </div>

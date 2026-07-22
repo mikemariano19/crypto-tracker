@@ -14,7 +14,7 @@ export default function Trending() {
   const { coins } = useTopGainers();
 
   return (
-    <Card className="mx-auto h-47 w-full max-w-md">
+    <Card className="mx-auto h-47 w-full mb-4">
       <CardHeader>
         <CardTitle className="text-gray-700 font-semibold">
           Top Gainers

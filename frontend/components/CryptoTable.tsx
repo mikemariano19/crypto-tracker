@@ -31,14 +31,14 @@ export default function CryptoTable() {
       <div className="overflow-x-auto rounded-lg border border-gray-200">
         <Table className="min-w-40 w-full border-collapse">
           
-          <TableHeader className="bg-white z-50">
+          <TableHeader className="bg-white">
             <TableRow>
               {/* ✅ Sticky # column */}
-              <TableHead className="sticky left-0 z-30  w-8 text-center">
+              <TableHead className="sticky left-0  w-8 text-center">
                 #
               </TableHead>
               {/* ✅ Sticky Coin column — offset by width of # column (~40px) */}
-              <TableHead className="sticky left-8.5 min-w-40 z-30 ">
+              <TableHead className="sticky left-8.5 min-w-40 z-10 ">
                 Coin
               </TableHead>
               <TableHead className="text-right">Price</TableHead>
@@ -56,12 +56,12 @@ export default function CryptoTable() {
                 onClick={() => router.push(`/coin/${coin.id}`)}
                 >
                   {/* ✅ Sticky # cell */}
-                  <TableCell className="sticky left-0 z-50 p-2 text-center text-gray-500 text-sm ">
+                  <TableCell className="sticky left-0 p-2 text-center text-gray-500 text-sm ">
                     {index + 1}
                   </TableCell>
 
                   {/* ✅ Sticky Coin cell — no flex! use inline-flex on inner div */}
-                  <TableCell className="sticky left-8.5 min-w-10 max-w-10 z-50 ">
+                  <TableCell className="sticky left-8.5 min-w-10 max-w-10 ">
                     <div className="flex items-center gap-2">
                       <Image
                         alt={coin.name}

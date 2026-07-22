@@ -19,14 +19,14 @@ export default function MarketCap() {
   const isPositive = changePercentage >= 0;
 
   return (
-    <Card className="w-full max-w-md">
+    <Card className="w-full">
       <CardHeader>
         <div className="flex items-center gap-2">
           <CardTitle className="text-gray-700 font-semibold">Market Cap</CardTitle>
 
           {!isLoading && (
             <div
-              className={`flex items-center text-sm font-semibold ${
+              className={`flex lg:items-center text-sm font-semibold ${
                 isPositive ? "text-green-500" : "text-red-500"
               }`}
             >
