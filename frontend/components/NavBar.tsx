@@ -1,7 +1,7 @@
 
 export default function NavBar() {
     return (
-        <nav className="max-w-4xl flex justify-between mx-auto font-semibold py-4 px-2">
+        <nav className="max-w-5xl flex justify-between mx-auto font-semibold py-4 px-2">
             <div>
                 <a href="#" className="text-xl">CryptoTracker</a>
             </div>

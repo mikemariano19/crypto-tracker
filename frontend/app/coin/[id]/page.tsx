@@ -32,6 +32,30 @@ export default async function CoinPage({ params }: Props) {
       <p>Total Supply: {data.market_data.total_supply}</p>
 
       <p>Circulating Supply: {data.market_data.circulating_supply}</p>
+      <p>Block Time: {data.block_time_in_minutes} minutes</p>
+      <p>Hashing Algorithm: {data.hashing_algorithm}</p>
+      <p>Category: {data.categories}</p>
+      <p>Genesis Date: {data.genesis_date}</p>
+      <p>Description: {data.description.en}</p>
+      <p>Homepage: {data.links.homepage}</p>
+      <p>Whitepaper: {data.whitepaper}</p>
+       {data.links.blockchain_site
+        .filter((url: string) => url !== "")
+        .map((url: string, index: number) => (
+          <p key={index}>
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-500 hover:underline"
+            >
+              {url}
+            </a>
+          </p>
+        ))}
+
+
+
     </div>
   );
 }
