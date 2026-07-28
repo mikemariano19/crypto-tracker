@@ -10,6 +10,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useRouter } from "next/navigation";
+
+
 export default function CryptoTable() {
   const { prices, isLoading, isError } = useCryptoPrices();
   const router = useRouter();

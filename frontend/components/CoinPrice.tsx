@@ -1,5 +1,5 @@
 "use client";
-import { useMarketCap } from "@/hooks/useMarketCap";
+import { useCryptoPrices } from "@/hooks/useCryptoPrices";
 
 import {
   Card,
@@ -10,12 +10,12 @@ import {
 
 import { ArrowUp, ArrowDown } from "lucide-react";
 
-export default function MarketCap() {
+export default function CoinPrice() {
   const {
-    marketCap,
+    prices,
     changePercentage,
     isLoading,
-  } = useMarketCap();
+  } = useCryptoPrices();
 
   const isPositive = changePercentage >= 0;
 
@@ -23,7 +23,7 @@ export default function MarketCap() {
     <Card className="w-full">
       <CardHeader>
         <div className="flex items-center gap-2">
-          <CardTitle className="text-gray-700 font-semibold">Market Cap</CardTitle>
+          <CardTitle className="text-gray-700 font-semibold">{prices.length > 0 ? prices[0].name : "Loading..."}</CardTitle>
 
           {!isLoading && (
             <div
@@ -43,7 +43,7 @@ export default function MarketCap() {
         </div>
 
         <CardDescription className="text-2xl md:text-xl font-bold text-foreground">
-          ${marketCap ? marketCap : "Loading..."}
+          {prices.length > 0 ? `$${prices[0].current_price.toLocaleString()}` : "Loading..."}
         </CardDescription>
       </CardHeader>
     </Card>

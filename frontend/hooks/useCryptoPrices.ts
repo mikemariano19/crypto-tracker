@@ -68,6 +68,7 @@ export function useCryptoPrices() {
 
     return {
         prices: data ?? [],
+        changePercentage: data?.[0]?.price_change_percentage_24h ?? 0,
         isLoading,
         isError: !!error,
         isStale: false,

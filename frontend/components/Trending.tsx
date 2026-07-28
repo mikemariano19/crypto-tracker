@@ -1,3 +1,5 @@
+"use client";
+
 import { useTrendingCoins } from "@/hooks/useTrending";
 import Image from "next/image";
 

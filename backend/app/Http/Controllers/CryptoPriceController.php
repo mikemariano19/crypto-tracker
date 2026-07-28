@@ -85,18 +85,18 @@ class CryptoPriceController extends Controller
     }
 
         public function coin(string $id)
-    {
-        $response = Http::get("https://api.coingecko.com/api/v3/coins/{$id}");
+        {
+            $response = Http::get("https://api.coingecko.com/api/v3/coins/{$id}");
 
-        if (!$response->successful()) {
+            if (!$response->successful()) {
+                return response()->json([
+                    'success' => false,
+                ], 404);
+            }
+
             return response()->json([
-                'success' => false,
-            ], 404);
+                'success' => true,
+                'data' => $response->json(),
+            ]);
         }
-
-        return response()->json([
-            'success' => true,
-            'data' => $response->json(),
-        ]);
-    }
 }

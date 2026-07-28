@@ -1,3 +1,8 @@
+import CoinPrice from "@/components/CoinPrice";
+import CryptoTable from "@/components/CryptoTable";
+import MarketCap from "@/components/MarketCap";
+import Trending from "@/components/Trending";
+
 type Props = {
   params: Promise<{
     id: string;
@@ -22,17 +27,20 @@ export default async function CoinPage({ params }: Props) {
  const data = json.data;
 
   return (
-    <div>
+    <div className="flex flex-col gap-4 p-4 max-w-6xl mx-auto">
       <h1>{data.name}</h1>
 
-      <p>Price: ${data.market_data.current_price.usd}</p>
+      <p>Price: ${data.market_data.current_price.usd?.toLocaleString()}</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <CoinPrice />
+        <MarketCap />
+      </div>
+      <CryptoTable />
 
-      <p>Market Cap: ${data.market_data.market_cap.usd}</p>
+      <p>Total Supply: {data.market_data.total_supply?.toLocaleString()}</p>
+      <p>Market Cap Rank: {data.market_cap_rank}</p>
 
-      <p>Total Supply: {data.market_data.total_supply}</p>
-
-      <p>Circulating Supply: {data.market_data.circulating_supply}</p>
-      <p>Block Time: {data.block_time_in_minutes} minutes</p>
+      <p>Circulating Supply: {data.market_data.circulating_supply?.toLocaleString()}</p>
       <p>Hashing Algorithm: {data.hashing_algorithm}</p>
       <p>Category: {data.categories}</p>
       <p>Genesis Date: {data.genesis_date}</p>
