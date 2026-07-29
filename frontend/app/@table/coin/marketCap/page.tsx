@@ -1,7 +1,11 @@
-import CoinPrice from "@/components/CoinPrice";
-import CryptoTable from "@/components/CryptoTable";
-import MarketCap from "@/components/MarketCap";
-import Trending from "@/components/Trending";
+
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
 
 type Props = {
   params: Promise<{
@@ -9,7 +13,7 @@ type Props = {
   }>;
 };
 
-export default async function CoinPage({ params }: Props) {
+export default async function marketCap({ params }: Props) {
   const { id } = await params;
 
   const res = await fetch(
@@ -27,18 +31,24 @@ export default async function CoinPage({ params }: Props) {
  const data = json.data;
 
   return (
-    <div className="flex flex-col gap-4 p-4 max-w-6xl mx-auto">
+    <div className="flex flex-col gap-4 p-4 max-w-6xl mx-auto ">
+
+      <Card>
       <h1>{data.name}</h1>
-
       <p>Price: ${data.market_data.current_price.usd?.toLocaleString()}</p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <CoinPrice />
-        <MarketCap />
-      </div>
-      <CryptoTable />
+      </Card>
 
-      <p>Total Supply: {data.market_data.total_supply?.toLocaleString()}</p>
+      <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="text-gray-700 font-semibold">Market Cap</CardTitle>
+        <CardDescription className="text-2xl md:text-xl font-bold text-foreground">
+         {data.market_data.market_cap.usd?.toLocaleString()}
+        </CardDescription>
+      </CardHeader>
+      </Card>
+
       <p>Market Cap Rank: {data.market_cap_rank}</p>
+      <p>Total Supply: {data.market_data.total_supply?.toLocaleString()}</p>
 
       <p>Circulating Supply: {data.market_data.circulating_supply?.toLocaleString()}</p>
       <p>Hashing Algorithm: {data.hashing_algorithm}</p>
