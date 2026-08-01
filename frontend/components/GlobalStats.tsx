@@ -1,3 +1,5 @@
+"use client";
+
 import useGlobalStats from "@/hooks/useGlobalStats";
 import { useFormatNumber } from "@/hooks/useFormatNumber";
 

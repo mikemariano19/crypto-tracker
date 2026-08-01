@@ -1,3 +1,5 @@
+"use client";
+
 import useSWR from 'swr';
 import { useEffect } from 'react';
 import { getEcho } from '@/lib/echo';

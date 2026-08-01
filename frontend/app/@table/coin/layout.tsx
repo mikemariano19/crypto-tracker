@@ -1,10 +1,10 @@
 
 
-export default function CoinPage() {
+export default function layout() {
 
   return (
-    <div className="flex flex-col gap-4 p-4 max-w-6xl mx-auto ">
-      sss
+    <div>
+      coin profile layout
     </div>
   )
 }

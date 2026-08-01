@@ -15,18 +15,23 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({
+  header,
   children,
 }: Readonly<{
   children: React.ReactNode;
+  table: React.ReactNode;
+  header: React.ReactNode;
 }>) {
   return (
     <html
       lang="en"
       className= {fontSans.variable}
     >
-      
       <body className="min-h-full flex flex-col bg-gray-50">
-        {children}
+        <div>
+          {header}
+        </div>
+          {children}
       </body>
     </html>
   );
