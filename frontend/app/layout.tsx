@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter as FontSans } from "next/font/google";
 import "./globals.css";
+import GlobalStats from "@/components/GlobalStats";
+import NavBar from "@/components/NavBar";
 
 
 
@@ -17,6 +19,7 @@ export const metadata: Metadata = {
 export default function RootLayout({
   header,
   children,
+  table
 }: Readonly<{
   children: React.ReactNode;
   table: React.ReactNode;
@@ -28,10 +31,15 @@ export default function RootLayout({
       className= {fontSans.variable}
     >
       <body className="min-h-full flex flex-col bg-gray-50">
-        <div>
-          {header}
+        <div className="w-full mx-auto max-w-5xl">
+          <GlobalStats />
+          <NavBar />
         </div>
-          {children}
+        <div>
+         {header}
+         {table}
+        </div>
+         {children}
       </body>
     </html>
   );

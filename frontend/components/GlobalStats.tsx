@@ -16,7 +16,7 @@ export default function GlobalStats() {
 
   return (
     <>
-        <div className="grid grid-cols-3 md:flex md:flex-row gap-4 text-xs text-gray-700 p-1">
+        <div className="grid grid-cols-3 md:flex md:flex-row gap-4 text-xs text-gray-700 justify-center p-1">
             <p >Coins: <span className="text-gray-800 font-medium">{coinsCount}</span></p>
            <p className="flex flex-row justify-center items-center">
                 Market Cap:{" "}

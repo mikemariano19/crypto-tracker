@@ -5,7 +5,7 @@ export default async function CoinProfile() {
 
   return (
     <div>
-      eqwewqeqeq
+      Coin ID Profile
     </div>
   );
 }
