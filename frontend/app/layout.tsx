@@ -39,7 +39,7 @@ export default function RootLayout({
          {header}
          {table}
         </div>
-         {children}
+        {children}
       </body>
     </html>
   );
