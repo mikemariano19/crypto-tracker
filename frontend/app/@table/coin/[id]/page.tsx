@@ -5,6 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 
 
 type Props = {
@@ -31,45 +32,80 @@ export default async function marketCap({ params }: Props) {
  const data = json.data;
 
   return (
-    <div className=" ">
-
-      {/* Coin Information */}
+    <div className="flex flex-col gap-4 p-2 max-w-5xl mx-auto">
+      <h1 className="text-xl font-bold">{data.name} Statistics</h1>
+      
+     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      
+    {/* Market Cap */}
       <Card className="w-full">
       <CardHeader>
-        <CardTitle className="text-gray-700 font-semibold">{data.name}</CardTitle>
+        <CardTitle className="text-gray-700 font-semibold">{data.symbol.toUpperCase()} Price</CardTitle>
         <CardDescription className="text-2xl md:text-xl font-bold text-foreground">
          ${data.market_data.current_price.usd?.toLocaleString()}
         </CardDescription>
       </CardHeader>
       </Card>
 
-    {/* Market Cap */}
       <Card className="w-full">
       <CardHeader>
-        <CardTitle className="text-gray-700 font-semibold">Market Cap</CardTitle>
+        <CardTitle className="text-gray-700 font-semibold">24 Hour Trading Volume: </CardTitle>
         <CardDescription className="text-2xl md:text-xl font-bold text-foreground">
-         ${data.market_data.market_cap.usd?.toLocaleString()}
+           {data.market_data.total_volume?.toLocaleString()}
         </CardDescription>
       </CardHeader>
       </Card>
 
-      <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="text-gray-700 font-semibold">Total Supply: </CardTitle>
-        <CardDescription className="text-2xl md:text-xl font-bold text-foreground">
-           {data.market_data.total_supply?.toLocaleString()}
-        </CardDescription>
-      </CardHeader>
-      </Card>
+      
+     </div>
 
-      <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="text-gray-700 font-semibold">Circulating Supply:</CardTitle>
-        <CardDescription className="text-2xl md:text-xl font-bold text-foreground">
-           {data.market_data.circulating_supply?.toLocaleString()}
-        </CardDescription>
-      </CardHeader>
-      </Card>
+      <Table className="text-md border-collapse w-full grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        <TableBody className="border-y">
+          <TableRow className="flex justify-between py-4 border-y">
+            <TableCell className="font-semibold text-gray-700">
+              Market Cap:
+            </TableCell>
+            <TableCell className="font-bold">
+                <p> ${data.market_data.market_cap.usd?.toLocaleString()}</p>
+            </TableCell>  
+          </TableRow>
+        </TableBody>
+
+        <TableBody className="border-y">
+          <TableRow className="flex justify-between py-4 border-y">
+            <TableCell className="font-semibold text-gray-700">
+              Circulating Supply:
+            </TableCell>
+            <TableCell className="font-bold">
+                <p> ${data.market_data.circulating_supply?.toLocaleString()}</p>
+            </TableCell>  
+          </TableRow>
+        </TableBody>
+
+        <TableBody className="border-y">
+          <TableRow className="flex justify-between py-4 border-y">
+            <TableCell className="font-semibold text-gray-700">
+              24 Hour Trading Volume:
+            </TableCell>
+            <TableCell className="font-bold">
+                <p> ${data.market_data.total_volume?.toLocaleString()}</p>
+            </TableCell>  
+          </TableRow>
+        </TableBody>
+
+        <TableBody className="border-y">
+          <TableRow className="flex justify-between py-4 border-y">
+            <TableCell className="font-semibold text-gray-700">
+              Total Supply:
+            </TableCell>
+            <TableCell className="font-bold">
+                <p> ${data.market_data.total_supply?.toLocaleString()}</p>
+            </TableCell>  
+          </TableRow>
+        </TableBody>
+
+      </Table>
 
       <p>Market Cap Rank: {data.market_cap_rank}</p>
       <p>Total Supply: {data.market_data.total_supply?.toLocaleString()}</p>
