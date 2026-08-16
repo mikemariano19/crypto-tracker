@@ -59,10 +59,10 @@ export default async function marketCap({ params }: Props) {
       
      </div>
 
-      <Table className="text-md border-collapse w-full grid grid-cols-1 md:grid-cols-2 gap-4">
+      <Table className="text-md border-collapse w-full grid grid-cols-1 md:grid-cols-2 gap-y-0 gap-x-4">
 
         <TableBody className="border-y">
-          <TableRow className="flex justify-between py-4 border-y">
+          <TableRow className="flex justify-between py-4">
             <TableCell className="font-semibold text-gray-700">
               Market Cap:
             </TableCell>
@@ -72,8 +72,8 @@ export default async function marketCap({ params }: Props) {
           </TableRow>
         </TableBody>
 
-        <TableBody className="border-y">
-          <TableRow className="flex justify-between py-4 border-y">
+        <TableBody className="border-b md:border-t">
+          <TableRow className="flex justify-between py-4">
             <TableCell className="font-semibold text-gray-700">
               Circulating Supply:
             </TableCell>
@@ -83,8 +83,8 @@ export default async function marketCap({ params }: Props) {
           </TableRow>
         </TableBody>
 
-        <TableBody className="border-y">
-          <TableRow className="flex justify-between py-4 border-y">
+        <TableBody className="border-b">
+          <TableRow className="flex justify-between py-4">
             <TableCell className="font-semibold text-gray-700">
               24 Hour Trading Volume:
             </TableCell>
@@ -94,13 +94,13 @@ export default async function marketCap({ params }: Props) {
           </TableRow>
         </TableBody>
 
-        <TableBody className="border-y">
-          <TableRow className="flex justify-between py-4 border-y">
+        <TableBody className="border-b">
+          <TableRow className="flex justify-between py-4">
             <TableCell className="font-semibold text-gray-700">
-              Total Supply:
+              Max Supply:
             </TableCell>
             <TableCell className="font-bold">
-                <p> ${data.market_data.total_supply?.toLocaleString()}</p>
+                <p> ${data.market_data.max_supply?.toLocaleString()}</p>
             </TableCell>  
           </TableRow>
         </TableBody>
@@ -125,7 +125,7 @@ export default async function marketCap({ params }: Props) {
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-500 hover:underline"
+              className="text-blue-500 hover:underline break-all"
             >
               {url}
             </a>
