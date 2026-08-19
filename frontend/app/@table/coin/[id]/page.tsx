@@ -32,7 +32,7 @@ export default async function marketCap({ params }: Props) {
  const data = json.data;
 
   return (
-    <div className="flex flex-col gap-4 p-2 max-w-5xl mx-auto">
+    <div className="flex flex-col gap-4 p-2 max-w-5xl mx-auto sm:mx-2 md:mx-4 lg:mx-2">
       <h1 className="text-xl font-bold">{data.name} Statistics</h1>
       
      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
