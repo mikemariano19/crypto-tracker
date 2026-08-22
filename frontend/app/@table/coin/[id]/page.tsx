@@ -6,6 +6,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { ArrowUp, ArrowDown } from "lucide-react";
 
 
 type Props = {
@@ -30,9 +31,11 @@ export default async function marketCap({ params }: Props) {
 
  const json = await res.json();
  const data = json.data;
+ const changePercentage = data.market_data.price_change_percentage_24h ?? 0;
+ const isPositive = changePercentage >= 0;
 
   return (
-    <div className="flex flex-col gap-4 p-2 max-w-5xl mx-auto sm:mx-2 md:mx-4 lg:mx-2">
+    <div className="flex flex-col gap-4 p-2 max-w-5xl sm:mx-2 md:mx-4 lg:mx-auto">
       <h1 className="text-xl font-bold">{data.name} Statistics</h1>
       
      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -41,8 +44,21 @@ export default async function marketCap({ params }: Props) {
       <Card className="w-full">
       <CardHeader>
         <CardTitle className="text-gray-700 font-semibold">{data.symbol.toUpperCase()} Price</CardTitle>
-        <CardDescription className="text-2xl md:text-xl font-bold text-foreground">
+        <CardDescription className="flex justify-between text-2xl md:text-xl font-bold text-foreground">
          ${data.market_data.current_price.usd?.toLocaleString()}
+          <div
+            className={`flex lg:items-center text-xl font-semibold ${
+              isPositive ? "text-green-500" : "text-red-500"
+            }`}
+          >
+            {isPositive ? (
+              <ArrowUp className="h-5 w-5" />
+            ) : (
+              <ArrowDown className="h-5 w-5" />
+            )}
+
+            {Math.abs(changePercentage).toFixed(2)}%
+          </div>
         </CardDescription>
       </CardHeader>
       </Card>
@@ -51,7 +67,7 @@ export default async function marketCap({ params }: Props) {
       <CardHeader>
         <CardTitle className="text-gray-700 font-semibold">24 Hour Trading Volume: </CardTitle>
         <CardDescription className="text-2xl md:text-xl font-bold text-foreground">
-           {data.market_data.total_volume?.toLocaleString()}
+           ${data.market_data.total_volume.usd?.toLocaleString()}
         </CardDescription>
       </CardHeader>
       </Card>
@@ -89,7 +105,7 @@ export default async function marketCap({ params }: Props) {
               24 Hour Trading Volume:
             </TableCell>
             <TableCell className="font-bold">
-                <p> ${data.market_data.total_volume?.toLocaleString()}</p>
+                <p> ${data.market_data.total_volume.usd?.toLocaleString()}</p>
             </TableCell>  
           </TableRow>
         </TableBody>
@@ -100,7 +116,7 @@ export default async function marketCap({ params }: Props) {
               Max Supply:
             </TableCell>
             <TableCell className="font-bold">
-                <p> ${data.market_data.max_supply?.toLocaleString()}</p>
+                <p> {data.market_data.max_supply?.toLocaleString()}</p>
             </TableCell>  
           </TableRow>
         </TableBody>
