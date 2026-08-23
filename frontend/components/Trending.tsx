@@ -1,6 +1,7 @@
 "use client";
 
 import { useTrendingCoins } from "@/hooks/useTrending";
+import PriceChange from "@/components/PriceChange";
 import Image from "next/image";
 
 import {
@@ -24,7 +25,7 @@ export default function Trending() {
 
         <CardDescription className="space-y-3">
           {coins?.map((coin) => {
-            const isPositive = coin.changePercentage >= 0;
+            const isPositive = coin.price_change_percentage_24h >= 0;
 
             return (
               <div
@@ -46,28 +47,16 @@ export default function Trending() {
                       {coin.name}
                     </p>
                       <p className="text-xs mr-1 text-muted-foreground">${coin.price.toLocaleString(undefined, {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
+                          minimumFractionDigits: 3,
+                          maximumFractionDigits: 3,
                         })}
                       </p>
                   </div>
                 </div>
 
                 {/* Right side */}
-                <div
-                  className={`flex items-center text-sm font-semibold ${
-                    isPositive
-                    ? "text-green-500"
-                    : "text-red-500"
-                  }`}
-                  >
-                  {isPositive ? (
-                    <ArrowUp className="h-4 w-4" />
-                  ) : (
-                    <ArrowDown className="h-4 w-4" />
-                  )}
-
-                  {Math.abs(coin.changePercentage).toFixed(2)}%
+                <div className={`flex items-center text-sm font-semibold`} >
+                  <PriceChange value={coin.price_change_percentage_24h} />
                 </div>
               </div>
             );

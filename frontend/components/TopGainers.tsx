@@ -1,4 +1,5 @@
 import { useTopGainers } from "@/hooks/useTopGainers";
+import { formatPercentage } from "@/lib/formatCryptoStats";
 import Image from "next/image";
 
 import {
@@ -44,8 +45,8 @@ export default function Trending() {
                       {coin.name}
                       </p>
                       <p className="text-xs mr-1 text-muted-foreground">${coin.price.toLocaleString(undefined, {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
+                          minimumFractionDigits: 3,
+                          maximumFractionDigits: 3,
                         })}
                     </p>
                   </div>
@@ -64,8 +65,7 @@ export default function Trending() {
                   ) : (
                     <ArrowDown className="h-4 w-4" />
                   )}
-
-                  {Math.abs(coin.price_change_percentage_24h).toFixed(2)}%
+                  {formatPercentage(coin.price_change_percentage_24h)}
                 </div>
               </div>
             );

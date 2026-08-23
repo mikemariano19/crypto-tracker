@@ -8,7 +8,7 @@ export type TrendingCoin = {
   symbol: string;
   image: string;
   price: number;
-  changePercentage: number;
+  price_change_percentage_24h: number;
 };
 
 type TrendingApiResponse = {
@@ -41,7 +41,7 @@ const fetcher = async (url: string): Promise<TrendingCoin[]> => {
     symbol: coin.item.symbol,
     image: coin.item.small,
     price: coin.item.data.price,
-    changePercentage: coin.item.data.price_change_percentage_24h?.usd ?? 0,
+    price_change_percentage_24h: coin.item.data.price_change_percentage_24h?.usd ?? 0,
   }));
 };
 
@@ -76,7 +76,7 @@ export function useTrendingCoins() {
 
   return {
     coins: data ?? [],
-    changePercentage: data?.[0]?.changePercentage ?? 0,
+    price_change_percentage_24h: data?.[0]?.price_change_percentage_24h ?? 0,
     isLoading,
     isError: !!error,
     mutate,

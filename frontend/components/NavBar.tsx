@@ -6,7 +6,7 @@ export default function NavBar() {
                 <a href="#" className="text-xl">CryptoTracker</a>
             </div>
             <div className="hidden md:flex items-center gap-4">
-                <a href="#">Cryptocurrency</a>
+                <a href="http://localhost:3000/">Cryptocurrency</a>
                 <a href="#">News</a>
                 <a href="#" className="pointer">About</a>
             </div>
