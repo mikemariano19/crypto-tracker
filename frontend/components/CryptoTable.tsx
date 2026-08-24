@@ -30,7 +30,7 @@ export default function CryptoTable() {
 
   return (
     <div className="w-full max-w-5xl">
-      <div className="overflow-x-auto rounded-lg border border-gray-200 mx-0 md:mx-2">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 mx-0 md:mx-2 ">
         <Table className="min-w-40 w-full border-collapse">
           
           <TableHeader className="bg-white">
