@@ -162,7 +162,7 @@ export default async function marketCap({ params }: Props) {
             <TableCell className="font-bold gap-2">
                 <div className="flex justify-end gap-2">
                   <p> ${data.market_data.ath.usd.toLocaleString()}</p>
-                  <p className="text-red-500 flex justify-end"> {formatPercentage(data.market_data.ath_change_percentage.usd)}</p>
+                  <p className="text-red-500 text-[14px] flex justify-end items-center"> {formatPercentage(data.market_data.ath_change_percentage.usd)}</p>
                 </div>
                 <div className="text-gray-500 text-sm font-light flex justify-end">
                   <p> {formatDateWithAge(data.market_data.ath_date.usd)}</p>
@@ -179,7 +179,7 @@ export default async function marketCap({ params }: Props) {
             <TableCell className="font-bold gap-2">
                 <div className="flex justify-end gap-2">
                   <p> ${data.market_data.atl.usd.toLocaleString()}</p>
-                  <p className="text-green-500 flex justify-end"> {formatPercentage(data.market_data.atl_change_percentage.usd)}</p>
+                  <p className="text-green-500 text-[14px] flex justify-end items-center"> {formatPercentage(data.market_data.atl_change_percentage.usd)}</p>
                 </div>
                 <div className="text-gray-500 text-sm font-light flex justify-end">
                   <p> {formatDateWithAge(data.market_data.atl_date.usd)}</p>
