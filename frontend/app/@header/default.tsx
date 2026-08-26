@@ -1,13 +1,9 @@
 "use client"
 
-
 import MarketCap from "@/components/MarketCap"
 import TradingVolume from "@/components/TradingVolume"
 import Trending from "@/components/Trending"
 import TopGainers from "@/components/TopGainers"
-
-
-
 
 
 export default function Header() {

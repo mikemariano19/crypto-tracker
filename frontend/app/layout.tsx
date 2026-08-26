@@ -5,7 +5,6 @@ import GlobalStats from "@/components/GlobalStats";
 import NavBar from "@/components/NavBar";
 
 
-
 const fontSans = FontSans({
   subsets: ["latin"],
   variable: "--font-sans",
@@ -17,9 +16,9 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({
-  header,
   children,
-  table
+  table,
+  header,
 }: Readonly<{
   children: React.ReactNode;
   table: React.ReactNode;
