@@ -40,7 +40,7 @@ const fetcher = async (url: string): Promise<CryptoPrice[]> => {
 
 export function useCryptoPrices() {
     
-    const { data, mutate, error, isLoading } = useSWR(`${process.env.NEXT_PUBLIC_API_URL}/api/coins`, fetcher, {
+    const { data, mutate, error, isLoading } = useSWR(`${process.env.NEXT_PUBLIC_API_URL}/api/coin`, fetcher, {
         refreshInterval: 30_000,
         revalidateOnFocus: false,
         keepPreviousData: true,  // ← key: never wipe existing data on refetch

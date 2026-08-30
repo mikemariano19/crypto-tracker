@@ -18,9 +18,8 @@ export default function TradingVolume() {
     <Card className="w-full max-w-md my-4">
       <CardHeader>
         <div className="flex items-center gap-2">
-          <CardTitle className="text-gray-700 font-semibold">Trading Volume</CardTitle>
+          <CardTitle className="text-gray-700 font-semibold">24h Trading Volume</CardTitle>
         </div>
-
         <CardDescription className="text-2xl md:text-xl font-bold text-foreground">
           ${volume_24h?.toLocaleString(undefined, { maximumFractionDigits: 0 }) || "0"}
         </CardDescription>

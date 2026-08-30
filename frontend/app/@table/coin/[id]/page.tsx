@@ -11,6 +11,7 @@ import Image from "next/image";
 
 import { formatNumber } from "@/lib/formatNumber";
 import {formatPercentage,formatDateWithAge} from "@/lib/formatCryptoStats";
+import { formatCryptoPrice } from "@/lib/formatCryptoPrices";
 
 
 type Props = {
@@ -31,7 +32,7 @@ export default async function marketCap({ params }: Props) {
   const { id } = await params;
 
   const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/coins/${id}`,
+    `${process.env.NEXT_PUBLIC_API_URL}/api/coin/${id}`,
     {
       cache: "no-store",
     }
@@ -78,7 +79,7 @@ export default async function marketCap({ params }: Props) {
         </CardTitle>
         
         <CardDescription className="flex justify-between text-2xl md:text-xl font-bold text-foreground">
-         ${data.market_data.current_price.usd?.toLocaleString()}
+          ${formatCryptoPrice(data.market_data.current_price.usd)}
           <div
             className={`flex lg:items-center text-lg font-semibold ${
               isPositive ? "text-green-500" : "text-red-500"

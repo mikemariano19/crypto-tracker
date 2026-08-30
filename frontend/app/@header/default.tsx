@@ -1,4 +1,4 @@
-import GlobalStats from "@/components/GlobalStats";
+import GlobalStats from "@/components/coin/GlobalStats";
 import NavBar from "@/components/NavBar";
 
 export default function HeaderDefault() {

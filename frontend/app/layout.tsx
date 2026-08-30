@@ -16,11 +16,14 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
   table,
-  header
+  header,
+  coinStats,
+
 }: Readonly<{
   children: React.ReactNode;
   table: React.ReactNode;
   header: React.ReactNode;
+  coinStats: React.ReactNode;
 }>) {
   return (
     <html
@@ -29,6 +32,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-gray-50">
         {header}
+        {coinStats}
         {table}
         {children}
       </body>

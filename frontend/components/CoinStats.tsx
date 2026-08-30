@@ -1,12 +1,12 @@
 "use client"
 
-import MarketCap from "@/components/MarketCap"
-import TradingVolume from "@/components/TradingVolume"
-import Trending from "@/components/Trending"
-import TopGainers from "@/components/TopGainers"
+import MarketCap from "@/components/coin/MarketCap"
+import TradingVolume from "@/components/coin/TradingVolume"
+import Trending from "@/components/coin/Trending"
+import TopGainers from "@/components/coin/TopGainers"
 
 
-export default function HeaderDefault() {
+export default function CoinStats() {
     return (
             <div className="flex flex-col">
                 <div className="sm:mx-2 md:mx-4 lg:mx-0">

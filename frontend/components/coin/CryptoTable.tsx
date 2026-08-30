@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/table";
 import { useRouter } from "next/navigation";
 
+import { formatCryptoPrice } from "@/lib/formatCryptoPrices";
+
 
 export default function CryptoTable() {
   const { prices, isLoading, isError } = useCryptoPrices();
@@ -83,7 +85,7 @@ export default function CryptoTable() {
                   </TableCell>
 
                   <TableCell className="text-right whitespace-nowrap">
-                    ${coin.current_price.toLocaleString()}
+                    ${formatCryptoPrice(coin.current_price)}
                   </TableCell>
 
                   <TableCell
