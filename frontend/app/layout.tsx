@@ -30,11 +30,13 @@ export default function RootLayout({
       lang="en"
       className= {fontSans.variable}
     >
-      <body className="min-h-full flex flex-col bg-gray-50">
-        {header}
-        {coinStats}
-        {table}
-        {children}
+      <body className="min-h-full w-full flex flex-col bg-gray-50">
+       <div className="max-w-5xl mx-auto">
+          {header}
+          {coinStats}
+          {table}
+          {children}
+       </div>
       </body>
     </html>
   );

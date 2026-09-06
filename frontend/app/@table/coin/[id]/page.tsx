@@ -12,6 +12,7 @@ import Image from "next/image";
 import { formatNumber } from "@/lib/formatNumber";
 import {formatPercentage,formatDateWithAge} from "@/lib/formatCryptoStats";
 import { formatCryptoPrice } from "@/lib/formatCryptoPrices";
+import ReadMore from "@/components/ReadMore"; 
 
 
 type Props = {
@@ -189,33 +190,36 @@ export default async function marketCap({ params }: Props) {
           </TableRow>
         </TableBody>
 
-       
+        <TableBody className="border-b">
+          <TableRow className="flex justify-between py-4">
+            <TableCell className="font-semibold text-gray-700">
+              Genesis Date:
+            </TableCell>
+            <TableCell className="font-bold">
+                <p> {data.genesis_date}</p>
+            </TableCell>  
+          </TableRow>
+        </TableBody>
+
+        <TableBody className="border-b">
+          <TableRow className="flex justify-between py-4">
+            <TableCell className="font-semibold text-gray-700">
+              Hashing Algorithm:
+            </TableCell>
+            <TableCell className="font-bold">
+                <p> {data.hashing_algorithm}</p>
+            </TableCell>  
+          </TableRow>
+        </TableBody>
       </Table>
 
-      <p>Market Cap Rank: {data.market_cap_rank}</p>
-      <p>Total Supply: {formatNumber(data.market_data.total_supply)}</p>
+      <div>
+        <h1 className="text-lg mb-2">About {data.name} ({data.symbol.toUpperCase()}): </h1>
+        <p className="text-gray-600 leading-relaxed">
+          <ReadMore text={data.description.en} maxLength={400} />
+        </p>
+      </div>
 
-      <p>Circulating Supply: {formatNumber(data.market_data.circulating_supply)}</p>
-      <p>Hashing Algorithm: {data.hashing_algorithm}</p>
-      <p>Category: {data.categories}</p>
-      <p>Genesis Date: {data.genesis_date}</p>
-      <p>Description: {data.description.en}</p>
-      <p>Homepage: {data.links.homepage}</p>
-      <p>Whitepaper: {data.whitepaper}</p>
-       {data.links.blockchain_site
-        .filter((url: string) => url !== "")
-        .map((url: string, index: number) => (
-          <p key={index}>
-            <a
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-500 hover:underline break-all"
-            >
-              {url}
-            </a>
-          </p>
-        ))}
     </div>
   );
 }

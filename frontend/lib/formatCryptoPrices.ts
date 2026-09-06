@@ -1,19 +1,33 @@
-export function formatCryptoPrice(value: number | null | undefined): string {
+export function formatCryptoPrice(
+  value: number | null | undefined
+): string {
   if (value == null || isNaN(value)) {
     return "—";
   }
 
-  // Very small prices: show up to 5 decimal places
-  if (value < 1) {
+  if (value === 0) {
+    return "0";
+  }
+
+  // $1 or higher
+  if (value >= 1) {
+    return value.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+
+  // $0.01 - $0.999...
+  if (value >= 0.01) {
     return value.toLocaleString("en-US", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 5,
     });
   }
 
-  // $1 and above: show 2 decimal places
+  // Very small crypto prices
   return value.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: 5,
+    maximumFractionDigits: 8,
   });
 }
