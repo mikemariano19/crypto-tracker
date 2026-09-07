@@ -215,11 +215,8 @@ export default async function marketCap({ params }: Props) {
 
       <div>
         <h1 className="text-lg mb-2">About {data.name} ({data.symbol.toUpperCase()}): </h1>
-        <p className="text-gray-600 leading-relaxed">
           <ReadMore text={data.description.en} maxLength={400} />
-        </p>
       </div>
-
     </div>
   );
 }

@@ -23,16 +23,18 @@ export default function ReadMore({
       : text;
 
   return (
-    <div>
+    <div className="flex flex-col gap-2">
+      <p className="text-gray-600 leading-relaxed">
+        {displayedText}
+      </p>
+
       {isLong && (
         <button
         onClick={() => setExpanded(!expanded)}
-        className="text-start"
         >
-          {displayedText}
-          <p className="text-blue-500 hover:underline">
-          {expanded ? "Read less" : "Read more"}
-          </p>
+          <div className="w-full text-gray-100 p-2 mt-2 rounded-full cursor-pointer bg-gray-600 hover:bg-gray-700 transition-colors duration-300">
+            {expanded ? "Show less" : "Show more"}
+          </div> 
         </button>
       )}
     </div>
