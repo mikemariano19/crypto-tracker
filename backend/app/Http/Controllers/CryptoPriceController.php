@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Http\Request;
 
 class CryptoPriceController extends Controller
 {
@@ -92,6 +93,30 @@ class CryptoPriceController extends Controller
                 return response()->json([
                     'success' => false,
                 ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $response->json(),
+            ]);
+        }
+
+        public function chart(string $id, Request $request)
+        {
+            $days = $request->query('days', '7');
+
+            $response = Http::get(
+                "https://api.coingecko.com/api/v3/coins/{$id}/market_chart",
+                [
+                    'vs_currency' => 'usd',
+                    'days' => $days,
+                ]
+            );
+
+            if (!$response->successful()) {
+                return response()->json([
+                    'success' => false,
+                ], $response->status());
             }
 
             return response()->json([

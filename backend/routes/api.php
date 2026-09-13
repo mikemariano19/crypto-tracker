@@ -18,6 +18,7 @@ Route::get('/test', function () {
 
 Route::get('/coin', [CryptoPriceController::class, 'index']);
 Route::get('/coin/{id}', [CryptoPriceController::class, 'coin']);
+Route::get('/coin/{id}/chart', [CryptoPriceController::class, 'chart']);
 Route::get('/top-gainers', [TopGainerController::class, 'index']);
 
 

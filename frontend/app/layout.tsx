@@ -17,13 +17,13 @@ export default function RootLayout({
   children,
   table,
   header,
-  coinStats,
+  coinGraph,
 
 }: Readonly<{
   children: React.ReactNode;
   table: React.ReactNode;
   header: React.ReactNode;
-  coinStats: React.ReactNode;
+  coinGraph: React.ReactNode;
 }>) {
   return (
     <html
@@ -33,7 +33,7 @@ export default function RootLayout({
       <body className="min-h-full w-full flex flex-col bg-gray-50">
        <div className="max-w-5xl mx-auto">
           {header}
-          {coinStats}
+          {coinGraph}
           {table}
           {children}
        </div>
