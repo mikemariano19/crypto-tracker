@@ -1,5 +1,5 @@
 import GlobalStats from "@/components/coin/GlobalStats";
-import NavBar from "@/components/NavBar";
+import NavBar from "@/components/coin/NavBar";
 
 export default function HeaderDefault() {
   return (

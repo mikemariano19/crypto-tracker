@@ -1,7 +1,6 @@
 "use client";
 
 import { formatAxisPrice } from "@/lib/formatAxisPrice";
-import { formatCryptoPrice } from "@/lib/formatCryptoPrices";
 import { useEffect, useState } from "react";
 import {
   LineChart,

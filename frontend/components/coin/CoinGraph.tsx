@@ -1,10 +1,8 @@
-import CryptoChart from "@/components/CryptoChart";
+import CryptoChart from "@/components/coin/CryptoChart";
 
 
 export default async function CoinGraph({ params }: { params: { id: string } }) {
   const { id } = await params;
-
-  // Your existing coin profile fetch...
 
   return (
     <div className="space-y-6">

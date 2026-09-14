@@ -13,6 +13,7 @@ import { formatNumber } from "@/lib/formatNumber";
 import {formatPercentage,formatDateWithAge} from "@/lib/formatCryptoStats";
 import { formatCryptoPrice } from "@/lib/formatCryptoPrices";
 import ReadMore from "@/components/ReadMore"; 
+import CryptoChart from "@/components/coin/CryptoChart";
 
 
 type Props = {
@@ -52,6 +53,7 @@ export default async function marketCap({ params }: Props) {
 
   return (
     <div className="flex flex-col gap-4 p-2 max-w-5xl sm:mx-2 md:mx-4 lg:mx-auto">
+      <CryptoChart coinId={id} />
       <h1 className="text-xl font-bold">{data.name} Statistics</h1>
       
      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
