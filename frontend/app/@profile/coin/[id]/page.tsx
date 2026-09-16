@@ -30,7 +30,7 @@ type Props = {
 
 
 
-export default async function marketCap({ params }: Props) {
+export default async function CoinProfile({ params }: Props) {
   const { id } = await params;
 
   const res = await fetch(

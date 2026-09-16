@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter as FontSans } from "next/font/google";
 import "./globals.css";
+import GlobalStats from "@/components/coin/GlobalStats";
+import NavBar from "@/components/coin/NavBar";
 
 
 const fontSans = FontSans({
@@ -15,8 +17,6 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-  header,
-  profile,
 }: Readonly<{
   children: React.ReactNode;
   header: React.ReactNode;
@@ -29,8 +29,8 @@ export default function RootLayout({
     >
       <body className="min-h-full w-full flex flex-col bg-gray-50">
        <div className="max-w-5xl mx-auto">
-          {header}
-          {profile}
+        <GlobalStats />
+        <NavBar />
           {children}
        </div>
       </body>

@@ -2,6 +2,7 @@
 
 import CryptoTable from "@/components/coin/CryptoTable";
 import CoinStats from "@/components/coin/CoinStats";
+import CoinProfile from "./@profile/coin/[id]/page";
 
 
 export default function Home() {
@@ -11,6 +12,7 @@ export default function Home() {
       <p className="text-gray-600 mx-2 md:mx-5 lg:mx-2">
         Welcome to the Crypto Tracker! Stay updated with the latest cryptocurrency prices and market data. Click on any coin to view detailed statistics.
       </p>
+      {/* <CoinProfile coinId="bitcoin" /> */}
       <CryptoTable />
     </div>
   )
