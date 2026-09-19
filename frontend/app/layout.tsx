@@ -17,6 +17,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
+  profile,
 }: Readonly<{
   children: React.ReactNode;
   header: React.ReactNode;
@@ -28,10 +29,11 @@ export default function RootLayout({
       className= {fontSans.variable}
     >
       <body className="min-h-full w-full flex flex-col bg-gray-50">
-       <div className="max-w-5xl mx-auto">
+       <div className="container md:max-w-5xl mx-auto">
         <GlobalStats />
         <NavBar />
-          {children}
+            {profile}
+            {children}
        </div>
       </body>
     </html>

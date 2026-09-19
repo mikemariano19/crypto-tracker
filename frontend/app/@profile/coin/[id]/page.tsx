@@ -34,10 +34,7 @@ export default async function CoinProfile({ params }: Props) {
   const { id } = await params;
 
   const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/coin/${id}`,
-    {
-      cache: "no-store",
-    }
+    `${process.env.NEXT_PUBLIC_API_URL}/api/coin/${id}`
   );
 
   if (!res.ok) {
