@@ -52,7 +52,7 @@ export default async function CoinProfile({ params }: Props) {
   const maxSupply = data.market_data.max_supply;
 
   return (
-    <main className="w-full max-w-5xl mx-auto px-3 sm:px-4 pb-10 space-y-4">
+    <main className="w-full max-w-5xl mx-auto mt-4 px-3 sm:px-4 pb-10 space-y-4">
 
       {/* =========================================================
           COIN HEADER
