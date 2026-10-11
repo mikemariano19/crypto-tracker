@@ -106,7 +106,7 @@ export default function CryptoTable() {
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto px-2 md:px-4">
+    <div className="w-full max-w-5xl mx-auto pt-2 px-2 md:px-3 lg:px-2">
 
       {/* Header */}
       <div className="mb-3">
@@ -122,7 +122,7 @@ export default function CryptoTable() {
       {/* Table wrapper */}
       <div className="overflow-x-auto rounded-xl border bg-white shadow-sm">
 
-        <Table className="min-w-[760px] border-collapse">
+        <Table className="min-w-190 border-collapse">
 
           <TableHeader>
             <TableRow className="bg-gray-50 hover:bg-gray-50 border-b">
@@ -151,12 +151,12 @@ export default function CryptoTable() {
               <TableHead
                 className="
                   sticky left-9 z-30
-                  w-[125px]
-                  min-w-[125px]
-                  max-w-[125px]
-                  sm:w-[160px]
-                  sm:min-w-[160px]
-                  sm:max-w-[160px]
+                  w-31.25
+                  min-w-31.25
+                  max-w-31.25
+                  sm:w-40
+                  sm:min-w-40
+                  sm:max-w-40
                   px-2
                   bg-gray-50
                   text-[11px]
@@ -256,12 +256,12 @@ export default function CryptoTable() {
                   <TableCell
                     className="
                       sticky left-9 z-20
-                      w-[125px]
-                      min-w-[125px]
-                      max-w-[125px]
-                      sm:w-[160px]
-                      sm:min-w-[160px]
-                      sm:max-w-[160px]
+                      w-31.25
+                      min-w-31.25
+                      max-w-31.25
+                      sm:w-40
+                      sm:min-w-40
+                      sm:max-w-40
                       px-2
                       py-3
                       bg-white
@@ -288,8 +288,8 @@ export default function CryptoTable() {
                             font-semibold
                             text-xs
                             truncate
-                            max-w-[82px]
-                            sm:max-w-[110px]
+                            max-w-20.5
+                            sm:max-w-27.5
                           "
                           title={coin.name}
                         >

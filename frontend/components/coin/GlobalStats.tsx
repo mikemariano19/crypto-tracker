@@ -21,7 +21,7 @@ export default function GlobalStats() {
         className="
           mx-auto
           max-w-5xl
-          px-3
+          px-1 md:px-0
           py-2.5
         "
       >
@@ -101,7 +101,7 @@ export default function GlobalStats() {
                 Dominance
               </p>
 
-              <p className="text-[10px] sm:text-sm font-semibold whitespace-nowrap">
+              <p className="text-[9px] sm:text-sm font-semibold whitespace-nowrap">
                 <span className="text-orange-500">
                   BTC {btc_dominance?.toFixed(2)}%
                 </span>

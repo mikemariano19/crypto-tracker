@@ -19,7 +19,7 @@ export default function TopGainers() {
   return (
     <Card className="w-full border-0 shadow-sm">
 
-      <CardHeader className="px-4 pb-2 pt-4">
+      <CardHeader className="px-4">
 
         <div className="flex items-center gap-2">
 
