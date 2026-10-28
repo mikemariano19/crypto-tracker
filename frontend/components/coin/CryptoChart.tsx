@@ -1,112 +1,126 @@
 "use client";
 
-import { formatAxisPrice } from "@/lib/formatAxisPrice";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
+import { ArrowDown, ArrowUp, RefreshCw } from "lucide-react";
 import {
-  LineChart,
-  Line,
+  Area,
+  Bar,
+  CartesianGrid,
+  ComposedChart,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-  ReferenceLine,
 } from "recharts";
 
-type ChartPoint = {
-  timestamp: number;
-  price: number;
-  volume: number | null;
-};
+import {
+  useCoinChart,
+  type ChartPoint,
+  type ChartRange,
+} from "@/hooks/useCoinChart";
 
 type Props = {
   coinId: string;
+  // The profile's live price; the chart ends on it so both always agree.
+  livePrice?: number | null;
+  liveUpdatedAt?: string | null;
 };
 
 type TooltipProps = {
   active?: boolean;
   payload?: Array<{ payload: ChartPoint }>;
+  days: ChartRange;
 };
 
-const ranges = [
-  { label: "1D", days: "1" },
-  { label: "7D", days: "7" },
-  { label: "30D", days: "30" },
-  { label: "1Y", days: "365" },
+const RANGES: { label: string; days: ChartRange; period: string }[] = [
+  { label: "24H", days: "1", period: "past 24 hours" },
+  { label: "7D", days: "7", period: "past 7 days" },
+  { label: "30D", days: "30", period: "past 30 days" },
+  { label: "90D", days: "90", period: "past 90 days" },
+  { label: "1Y", days: "365", period: "past year" },
 ];
 
-const currency = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 8,
-});
+const UP_COLOR = "#16a34a";
+const DOWN_COLOR = "#ef4444";
+const VOLUME_COLOR = "#cbd5e1";
+
+const CHART_HEIGHT = "h-[300px] sm:h-[380px]";
 
 function formatPrice(value: number) {
-  return currency.format(value);
-}
-
-function formatDate(timestamp: number, includeYear = false) {
-  return new Date(timestamp).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    ...(includeYear ? { year: "numeric" } : {}),
+  return value.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: value >= 1 ? 2 : value >= 0.01 ? 5 : 8,
   });
 }
 
-function formatTime(timestamp: number) {
-  return new Date(timestamp).toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
+function formatAxisPrice(value: number) {
+  if (value >= 1_000) {
+    return `$${new Intl.NumberFormat("en-US", {
+      notation: "compact",
+      maximumFractionDigits: 2,
+    }).format(value)}`;
+  }
+
+  return `$${Number(value.toPrecision(4))}`;
 }
 
-function formatVolume(value: number | null) {
+function formatCompactUsd(value: number | null) {
   if (value === null || !Number.isFinite(value)) return "—";
 
-  return new Intl.NumberFormat("en-US", {
+  return `$${new Intl.NumberFormat("en-US", {
     notation: "compact",
     maximumFractionDigits: 2,
-  }).format(value);
+  }).format(value)}`;
 }
 
-function CustomTooltip({ active, payload }: TooltipProps) {
+function formatTick(timestamp: number, days: ChartRange) {
+  const date = new Date(timestamp);
+
+  if (days === "1") {
+    return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  }
+
+  if (days === "365") {
+    return date.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+  }
+
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function ChartTooltip({ active, payload, days }: TooltipProps) {
   if (!active || !payload?.length) return null;
 
   const point = payload[0].payload;
+  const date = new Date(point.timestamp);
 
   return (
-    <div className="min-w-[210px] rounded-xl border border-gray-200 bg-white p-3 shadow-xl">
-      <p className="text-xs font-medium text-gray-500">
-        {formatDate(point.timestamp, true)}
+    <div className="min-w-48 rounded-lg border border-gray-200 bg-white/95 p-3 shadow-lg backdrop-blur">
+      <p className="mb-2 text-[11px] font-medium text-gray-500">
+        {date.toLocaleDateString("en-US", {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })}
+        {days !== "365" &&
+          ` · ${date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`}
       </p>
 
-      <p className="mb-3 text-xs text-gray-500">
-        {formatTime(point.timestamp)}
-      </p>
-
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         <div className="flex items-center justify-between gap-4">
-          <span className="flex items-center gap-2 text-xs text-gray-500">
-            <span className="h-2 w-2 rounded-full bg-green-600" />
-            Price
-          </span>
-
+          <span className="text-xs text-gray-500">Price</span>
           <span className="text-sm font-bold text-gray-900">
             {formatPrice(point.price)}
           </span>
         </div>
 
         <div className="flex items-center justify-between gap-4">
-          <span className="flex items-center gap-2 text-xs text-gray-500">
-            <span className="h-2 w-2 rounded-full bg-blue-500" />
-            Volume
-          </span>
-
-          <span className="text-sm font-semibold text-gray-700">
-            {point.volume === null
-              ? "Unavailable"
-              : `$${formatVolume(point.volume)}`}
+          <span className="text-xs text-gray-500">Volume</span>
+          <span className="text-xs font-semibold text-gray-700">
+            {formatCompactUsd(point.volume)}
           </span>
         </div>
       </div>
@@ -114,228 +128,245 @@ function CustomTooltip({ active, payload }: TooltipProps) {
   );
 }
 
-export default function CryptoChart({ coinId }: Props) {
-  const [days, setDays] = useState("7");
-  const [data, setData] = useState<ChartPoint[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[11px] text-gray-500">{label}</p>
+      <p className="truncate text-sm font-semibold text-gray-900">{value}</p>
+    </div>
+  );
+}
 
-  useEffect(() => {
-    const controller = new AbortController();
+export default function CryptoChart({ coinId, livePrice, liveUpdatedAt }: Props) {
+  const [days, setDays] = useState<ChartRange>("7");
+  const {
+    points: historyPoints,
+    isLoading,
+    isValidating,
+    isError,
+    retry,
+  } = useCoinChart(coinId, days);
 
-    async function fetchChart() {
-      setLoading(true);
-      setError(false);
+  // Chart history is cached longer than the live price, so its last point
+  // can lag. Finish the line at the live price instead.
+  const points = useMemo<ChartPoint[]>(() => {
+    const last = historyPoints[historyPoints.length - 1];
+    const liveAt = liveUpdatedAt ? new Date(liveUpdatedAt).getTime() : NaN;
 
-      try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/coin/${coinId}/chart?days=${days}`,
-          { signal: controller.signal }
-        );
-
-        if (!res.ok) {
-          throw new Error(`Chart request failed: ${res.status}`);
-        }
-
-        const json = await res.json();
-        const chart = json.data;
-
-        const prices: [number, number][] = chart.prices ?? [];
-        const volumes: [number, number][] = chart.total_volumes ?? [];
-
-        const formatted: ChartPoint[] = prices.map(
-          ([timestamp, price], index) => ({
-            timestamp,
-            price,
-            volume: volumes[index]?.[1] ?? null,
-          })
-        );
-
-        if (!controller.signal.aborted) {
-          setData(formatted);
-        }
-      } catch (err) {
-        if (controller.signal.aborted) return;
-
-        console.error("Failed to fetch chart:", err);
-        setData([]);
-        setError(true);
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false);
-        }
-      }
+    if (!last || livePrice == null || !Number.isFinite(livePrice) || !Number.isFinite(liveAt)) {
+      return historyPoints;
     }
 
-    fetchChart();
+    if (liveAt <= last.timestamp) {
+      return [...historyPoints.slice(0, -1), { ...last, price: livePrice }];
+    }
 
-    return () => controller.abort();
-  }, [coinId, days, retryCount]);
+    return [...historyPoints, { timestamp: liveAt, price: livePrice, volume: last.volume }];
+  }, [historyPoints, livePrice, liveUpdatedAt]);
 
-  const prices = data.map((point) => point.price);
-  const minPrice = Math.min(...prices);
-  const maxPrice = Math.max(...prices);
-  const padding = (maxPrice - minPrice) * 0.08;
+  const range = RANGES.find((r) => r.days === days) ?? RANGES[1];
+  const hasData = points.length > 1;
+  // keepPreviousData shows the old range while a new one loads.
+  const isSwitching = hasData && isLoading;
+
+  const summary = useMemo(() => {
+    if (points.length < 2) return null;
+
+    const prices = points.map((point) => point.price);
+    const first = prices[0];
+    const last = prices[prices.length - 1];
+    const low = Math.min(...prices);
+    const high = Math.max(...prices);
+    const maxVolume = Math.max(0, ...points.map((point) => point.volume ?? 0));
+    const spread = high - low || high * 0.01;
+
+    return {
+      first,
+      last,
+      low,
+      high,
+      change: first ? ((last - first) / first) * 100 : 0,
+      // Leave the bottom of the plot free for volume bars.
+      priceDomain: [Math.max(0, low - spread * 0.35), high + spread * 0.08],
+      // Volume bars use the lowest ~quarter of the plot.
+      volumeDomain: [0, maxVolume * 4 || 1],
+    };
+  }, [points]);
+
+  const isUp = (summary?.change ?? 0) >= 0;
+  const color = isUp ? UP_COLOR : DOWN_COLOR;
+  const gradientId = `price-fill-${coinId}`;
 
   return (
-    <section className="w-full rounded-xl border bg-white p-3 shadow-sm sm:p-5">
+    <section className="w-full rounded-xl bg-card p-3 shadow-sm ring-1 ring-foreground/10 sm:p-5">
       {/* Header */}
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div>
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
           <h2 className="text-base font-bold text-gray-900 sm:text-lg">
             Price Chart
           </h2>
 
-          <p className="text-xs text-gray-500">
-            Historical price and trading volume
-          </p>
+          {summary ? (
+            <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <span className="text-2xl font-bold tracking-tight text-gray-900">
+                {formatPrice(summary.last)}
+              </span>
+
+              <span
+                className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold ${
+                  isUp ? "bg-green-50 text-green-600" : "bg-red-50 text-red-500"
+                }`}
+              >
+                {isUp ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                {Math.abs(summary.change).toFixed(2)}%
+              </span>
+
+              <span className="text-xs text-gray-500">{range.period}</span>
+            </div>
+          ) : (
+            <div className="mt-2 h-7 w-48 animate-pulse rounded bg-gray-100" />
+          )}
         </div>
 
-        <div className="flex items-center gap-1 rounded-lg bg-gray-100 p-1">
-          {ranges.map((range) => (
+        <div
+          role="group"
+          aria-label="Chart time range"
+          className="flex items-center gap-1 rounded-lg bg-gray-100 p-1"
+        >
+          {RANGES.map((option) => (
             <button
-              key={range.days}
+              key={option.days}
               type="button"
-              disabled={loading || days === range.days}
-              onClick={() => setDays((current) => current)}
-              aria-pressed={days === range.days}
-              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                days === range.days
-                  ? "bg-gray-900 text-white"
-                  : "text-gray-600 hover:bg-gray-200"
-              } disabled:cursor-not-allowed disabled:opacity-60`}
+              onClick={() => setDays(option.days)}
+              aria-pressed={days === option.days}
+              className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors sm:px-3 ${
+                days === option.days
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-900"
+              }`}
             >
-              {range.label}
+              {option.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Chart states */}
-      {loading ? (
-        <div className="flex h-[300px] items-center justify-center text-sm text-gray-500 sm:h-[360px]">
-          Loading price history...
+      {/* Chart */}
+      {hasData && summary ? (
+        <div className={`relative w-full ${CHART_HEIGHT}`}>
+          {isSwitching && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/60">
+              <RefreshCw className="h-5 w-5 animate-spin text-gray-400" aria-label="Loading" />
+            </div>
+          )}
+
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={points} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={color} stopOpacity={0.25} />
+                  <stop offset="100%" stopColor={color} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+
+              <CartesianGrid stroke="#f1f5f9" vertical={false} />
+
+              <XAxis
+                dataKey="timestamp"
+                type="number"
+                scale="time"
+                domain={["dataMin", "dataMax"]}
+                tickFormatter={(value: number) => formatTick(value, days)}
+                tick={{ fontSize: 11, fill: "#9ca3af" }}
+                tickLine={false}
+                axisLine={false}
+                minTickGap={40}
+                tickMargin={8}
+              />
+
+              <YAxis
+                yAxisId="price"
+                orientation="right"
+                domain={summary.priceDomain}
+                tickFormatter={formatAxisPrice}
+                tick={{ fontSize: 11, fill: "#9ca3af" }}
+                tickLine={false}
+                axisLine={false}
+                tickCount={6}
+                width={64}
+              />
+
+              <YAxis yAxisId="volume" domain={summary.volumeDomain} hide />
+
+              <Tooltip
+                content={<ChartTooltip days={days} />}
+                cursor={{ stroke: "#9ca3af", strokeDasharray: "4 4" }}
+                isAnimationActive={false}
+              />
+
+              <Bar
+                yAxisId="volume"
+                dataKey="volume"
+                fill={VOLUME_COLOR}
+                fillOpacity={0.6}
+                isAnimationActive={false}
+              />
+
+              {/* Where the period started, to read the change at a glance */}
+              <ReferenceLine
+                yAxisId="price"
+                y={summary.first}
+                stroke="#9ca3af"
+                strokeDasharray="3 3"
+                strokeOpacity={0.6}
+              />
+
+              <Area
+                yAxisId="price"
+                type="monotone"
+                dataKey="price"
+                stroke={color}
+                strokeWidth={2}
+                fill={`url(#${gradientId})`}
+                dot={false}
+                activeDot={{ r: 4, fill: color, stroke: "#ffffff", strokeWidth: 2 }}
+                isAnimationActive={false}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
         </div>
-      ) : error || data.length === 0 ? (
-        <div className="flex h-[300px] flex-col items-center justify-center gap-2 text-center sm:h-[360px]">
+      ) : isError && !isLoading ? (
+        <div className={`flex ${CHART_HEIGHT} flex-col items-center justify-center gap-2 text-center`}>
           <p className="text-sm font-medium text-gray-700">
-            Unable to load chart data
+            Chart data is temporarily unavailable
           </p>
           <p className="text-xs text-gray-500">
-            Please try another time range.
+            We&apos;ll keep retrying automatically.
           </p>
           <button
             type="button"
-            onClick={() => setRetryCount((count) => count + 1)}
-            className="text-sm font-medium text-blue-600 hover:underline"
+            onClick={retry}
+            disabled={isValidating}
+            className="mt-1 inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60"
           >
+            <RefreshCw className={`h-3.5 w-3.5 ${isValidating ? "animate-spin" : ""}`} />
             Try again
           </button>
         </div>
       ) : (
-        <>
-          {/* Current/latest price */}
-          <div className="mb-2">
-            <p className="text-2xl font-bold tracking-tight text-gray-900">
-              {formatPrice(data[data.length - 1].price)}
-            </p>
-            <p className="text-xs text-gray-500">
-              Latest available chart price
-            </p>
-          </div>
+        <div className={`${CHART_HEIGHT} w-full animate-pulse rounded-lg bg-gray-100`} />
+      )}
 
-          <div className="h-[280px] w-full sm:h-[340px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={data}
-                margin={{ top: 12, right: 4, left: 4, bottom: 4 }}
-              >
-                <CartesianGrid
-                  stroke="#e5e7eb"
-                  strokeDasharray="3 3"
-                  vertical={false}
-                />
-
-                <XAxis
-                  dataKey="timestamp"
-                  type="number"
-                  scale="time"
-                  domain={["dataMin", "dataMax"]}
-                  tickFormatter={(value: number) =>
-                    days === "1"
-                      ? formatTime(value)
-                      : formatDate(value)
-                  }
-                  tick={{ fontSize: 11, fill: "#9ca3af" }}
-                  tickLine={false}
-                  axisLine={false}
-                  minTickGap={30}
-                  tickMargin={10}
-                />
-
-                <YAxis
-                  yAxisId="price"
-                  orientation="right"
-                  domain={[
-                    Math.max(0, minPrice - padding),
-                    maxPrice + padding || "auto",
-                  ]}
-                  tickFormatter={formatAxisPrice}
-                  tick={{ fontSize: 11, fill: "#9ca3af" }}
-                  tickLine={false}
-                  axisLine={false}
-                  width={65}
-                />
-
-                <Tooltip
-                  content={<CustomTooltip />}
-                  cursor={{
-                    stroke: "#9ca3af",
-                    strokeDasharray: "4 4",
-                  }}
-                  isAnimationActive={false}
-                />
-
-                <ReferenceLine
-                  yAxisId="price"
-                  y={data[data.length - 1].price}
-                  stroke="#16a34a"
-                  strokeDasharray="4 4"
-                  strokeOpacity={0.5}
-                />
-
-                <Line
-                  yAxisId="price"
-                  type="monotone"
-                  dataKey="price"
-                  name="Price"
-                  stroke="#16a34a"
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={{
-                    r: 4,
-                    fill: "#16a34a",
-                    stroke: "#ffffff",
-                    strokeWidth: 2,
-                  }}
-                  isAnimationActive={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="mt-2 flex items-center justify-center gap-4 text-[11px] text-gray-500">
-            <span className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-green-600" />
-              Price (USD)
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-blue-500" />
-              Volume (USD)
-            </span>
-          </div>
-        </>
+      {/* Range stats */}
+      {summary && (
+        <div className="mt-4 grid grid-cols-3 gap-3 border-t pt-4">
+          <Stat label={`${range.label} Low`} value={formatPrice(summary.low)} />
+          <Stat label={`${range.label} High`} value={formatPrice(summary.high)} />
+          <Stat
+            label="24h Volume"
+            value={formatCompactUsd(points[points.length - 1].volume)}
+          />
+        </div>
       )}
     </section>
   );

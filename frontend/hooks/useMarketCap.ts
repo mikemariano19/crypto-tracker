@@ -1,6 +1,7 @@
 import useSWR from 'swr';
 import { useEffect } from 'react';
 import { getEcho } from '@/lib/echo';
+import { apiUrl, fetchApi } from '@/lib/api';
 
 type MarketCap = {
     market_cap: number;
@@ -9,28 +10,8 @@ type MarketCap = {
     updated_at: number;
 };
 
-interface ApiResponse {
-    success: boolean;
-    source: string;
-    data: MarketCap;
-    stale?: boolean;
-    cached_at?: string;
-    error?: string;
-}
-
-const fetcher = async (url: string): Promise<MarketCap> => {
-    const res = await fetch(url);
-    const json: ApiResponse = await res.json();
-
-    if (!json.success) {
-        throw new Error(json.error || 'Failed to fetch market stats');
-    }
-
-    return json.data;
-};
-
 export function useMarketCap() {
-    const { data, mutate, error, isLoading } = useSWR(`${process.env.NEXT_PUBLIC_API_URL}/api/market-stats`, fetcher, {
+    const { data, mutate, error, isLoading } = useSWR<MarketCap>(apiUrl('/api/market-stats'), fetchApi, {
         refreshInterval: 30_000,
         revalidateOnFocus: false,
         keepPreviousData: true,  // ← key: never wipe existing data on refetch
@@ -38,11 +19,6 @@ export function useMarketCap() {
             console.warn('Market stats fetch failed:', err.message);
         }
     });
-    
-
-    if(data){
-        console.log('Market stats API response:', data);
-    }
 
     useEffect(() => {
         const channel = getEcho().channel('market-stats');
@@ -56,7 +32,7 @@ export function useMarketCap() {
     }, [mutate]);
 
     return {
-        marketCap: data?.market_cap ? data.market_cap.toLocaleString(undefined, { maximumFractionDigits: 0 }) : null,
+        marketCap: data?.market_cap || null,
         changePercentage: data?.change_24h || 0,
         isLoading,
         isError: !!error,

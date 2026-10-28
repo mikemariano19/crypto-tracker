@@ -60,7 +60,7 @@ export default function NavBar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur">
 
-      <nav className="mx-auto flex h-14 max-w-5xl items-center justify-between px-2 md:px-3 lg:px-2">
+      <nav className="mx-auto flex h-14 max-w-5xl items-center justify-between px-3 sm:px-4">
 
         {/* =====================================================
             LOGO

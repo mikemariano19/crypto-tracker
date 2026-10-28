@@ -2,23 +2,27 @@
 
 return [
 
-    'paths' => ['api/*', 'sanctum/csrf-cookie'],
+    'paths' => ['api/*'],
 
-    'allowed_methods' => ['*'],
+    // The API is read-only.
+    'allowed_methods' => ['GET', 'HEAD', 'OPTIONS'],
 
-    'allowed_origins' => [
-        'http://localhost:3000',
-        'http://192.168.1.15:3000',
-    ],
+    // Comma-separated list, e.g. FRONTEND_URLS=https://app.example.com
+    'allowed_origins' => array_filter(array_map('trim', explode(
+        ',',
+        env('FRONTEND_URLS', 'http://localhost:3000,http://192.168.1.15:3000')
+    ))),
 
     'allowed_origins_patterns' => [],
 
-    'allowed_headers' => ['*'],
+    'allowed_headers' => ['Accept', 'Content-Type', 'If-None-Match'],
 
-    'exposed_headers' => [],
+    'exposed_headers' => ['ETag'],
 
-    'max_age' => 0,
+    // Cache preflight results for a day.
+    'max_age' => 86400,
 
-    'supports_credentials' => true, // important if using auth
+    // Public market data only: no cookies or auth headers are sent.
+    'supports_credentials' => false,
 
 ];

@@ -3,6 +3,7 @@
 import useSWR from 'swr';
 import { useEffect } from 'react';
 import { getEcho } from '@/lib/echo';
+import { apiUrl, fetchApi } from '@/lib/api';
 
 
 type MarketCap = {
@@ -14,27 +15,8 @@ type MarketCap = {
     eth_dominance: number;
 };
 
-interface ApiResponse {
-    success: boolean;
-    data: MarketCap;
-    stale?: boolean;
-    cached_at?: string;
-    error?: string;
-}
-
-const fetcher = async (url: string): Promise<MarketCap> => {
-    const res = await fetch(url);
-    const json: ApiResponse = await res.json();
-
-    if (!json.success) {
-        throw new Error(json.error || 'Failed to fetch global stats');
-    }
-
-    return json.data;
-};
-
 export default function useGlobalStats() {
-    const { data, mutate, error, isLoading } = useSWR(`${process.env.NEXT_PUBLIC_API_URL}/api/market-stats`, fetcher, {
+    const { data, mutate, error, isLoading } = useSWR<MarketCap>(apiUrl('/api/market-stats'), fetchApi, {
         refreshInterval: 30_000,
         revalidateOnFocus: false,
         keepPreviousData: true,  // ← key: never wipe existing data on refetch
@@ -42,11 +24,6 @@ export default function useGlobalStats() {
             console.warn('Global stats fetch failed:', err.message);
         }
     });
-    
-
-    if(data){
-        console.log('Global stats API response:', data);
-    }
 
     useEffect(() => {
         const channel = getEcho().channel('global-stats');
@@ -63,8 +40,9 @@ export default function useGlobalStats() {
         marketCap: data?.market_cap,
         changePercentage: data?.change_24h || 0,
         coinsCount: data?.active_cryptocurrencies || 0,
-        btc_dominance: data?.btc_dominance || 0,
-        eth_dominance: data?.eth_dominance || 0,
+        // undefined until loaded, so the UI can show a placeholder instead of 0%
+        btc_dominance: data?.btc_dominance,
+        eth_dominance: data?.eth_dominance,
         isLoading,
         isError: !!error,
     };

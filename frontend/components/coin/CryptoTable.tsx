@@ -1,7 +1,15 @@
 "use client";
 
-import { useCryptoPrices } from "@/hooks/useCryptoPrices";
+import {
+  COINS_PER_PAGE,
+  MAX_COIN_PAGES,
+  coinsPageKey,
+  useCryptoPrices,
+} from "@/hooks/useCryptoPrices";
+import Pagination from "@/components/Pagination";
+import { fetchApi } from "@/lib/api";
 import Image from "next/image";
+import { useCallback, useRef } from "react";
 import {
   Table,
   TableBody,
@@ -10,31 +18,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { formatCryptoPrice } from "@/lib/formatCryptoPrices";
-
-function formatCompactNumber(value: number) {
-  if (!value || value === 0) return "$0";
-
-  if (value >= 1_000_000_000_000) {
-    return `$${(value / 1_000_000_000_000).toFixed(2)}T`;
-  }
-
-  if (value >= 1_000_000_000) {
-    return `$${(value / 1_000_000_000).toFixed(2)}B`;
-  }
-
-  if (value >= 1_000_000) {
-    return `$${(value / 1_000_000).toFixed(2)}M`;
-  }
-
-  if (value >= 1_000) {
-    return `$${(value / 1_000).toFixed(2)}K`;
-  }
-
-  return `$${value.toLocaleString()}`;
-}
+import { formatCompactUsd } from "@/lib/formatCompactUsd";
 
 function formatPercentage(value: number | null | undefined) {
   if (value === null || value === undefined) {
@@ -75,13 +62,40 @@ function PercentageCell({
   );
 }
 
+function parsePage(value: string | null) {
+  const page = Number(value);
+  return Number.isInteger(page) && page >= 1 && page <= MAX_COIN_PAGES ? page : 1;
+}
+
 export default function CryptoTable() {
-  const { prices, isLoading, isError } = useCryptoPrices();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // The page lives in the URL so refresh, sharing and Back all work.
+  const page = parsePage(searchParams.get("page"));
+
+  const { prices, isLoading, isError } = useCryptoPrices(page);
+  // keepPreviousData shows the old page while the new one loads.
+  const isChangingPage = isLoading && prices.length > 0;
+  const firstRank = (page - 1) * COINS_PER_PAGE + 1;
+
+  const topRef = useRef<HTMLDivElement>(null);
+  const prefetched = useRef(new Set<number>());
+
+  const goToPage = (target: number) => {
+    router.push(target === 1 ? "/" : `/?page=${target}`, { scroll: false });
+    topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  // Warm the browser and API caches on hover so the click feels instant.
+  const prefetchPage = useCallback((target: number) => {
+    if (target === page || prefetched.current.has(target)) return;
+    prefetched.current.add(target);
+    fetchApi(coinsPageKey(target)).catch(() => prefetched.current.delete(target));
+  }, [page]);
 
   if (isLoading && prices.length === 0) {
     return (
-      <div className="w-full max-w-5xl mx-auto px-2 md:px-4">
+      <div className="w-full">
         <div className="rounded-xl border bg-white py-12 text-center text-sm text-muted-foreground">
           Loading market data...
         </div>
@@ -91,7 +105,7 @@ export default function CryptoTable() {
 
   if (isError && prices.length === 0) {
     return (
-      <div className="w-full max-w-5xl mx-auto px-2 md:px-4">
+      <div className="w-full">
         <div className="rounded-xl border bg-white py-12 text-center">
           <p className="text-sm font-medium text-red-500">
             Failed to load prices
@@ -106,21 +120,27 @@ export default function CryptoTable() {
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto pt-2 px-2 md:px-3 lg:px-2">
+    <div className="w-full pt-2">
 
-      {/* Header */}
-      <div className="mb-3">
+      {/* Header (scroll target when changing pages, clear of the sticky navbar) */}
+      <div ref={topRef} className="mb-3 scroll-mt-20">
         <h2 className="text-lg font-bold">
           Cryptocurrency Market
         </h2>
 
         <p className="text-xs text-muted-foreground">
-          Top cryptocurrencies by market capitalization
+          Top cryptocurrencies by market capitalization · Showing #{firstRank}–
+          {firstRank + COINS_PER_PAGE - 1}
         </p>
       </div>
 
       {/* Table wrapper */}
-      <div className="overflow-x-auto rounded-xl border bg-white shadow-sm">
+      <div
+        aria-busy={isChangingPage}
+        className={`overflow-x-auto rounded-xl border bg-white shadow-sm transition-opacity ${
+          isChangingPage ? "pointer-events-none opacity-50" : ""
+        }`}
+      >
 
         <Table className="min-w-190 border-collapse">
 
@@ -246,7 +266,7 @@ export default function CryptoTable() {
                       text-gray-400
                     "
                   >
-                    {index + 1}
+                    {firstRank + index}
                   </TableCell>
 
 
@@ -380,7 +400,7 @@ export default function CryptoTable() {
                       text-gray-700
                     "
                   >
-                    {formatCompactNumber(
+                    {formatCompactUsd(
                       coin.total_volume
                     )}
                   </TableCell>
@@ -399,7 +419,7 @@ export default function CryptoTable() {
                       text-gray-700
                     "
                   >
-                    {formatCompactNumber(
+                    {formatCompactUsd(
                       coin.market_cap
                     )}
                   </TableCell>
@@ -416,6 +436,15 @@ export default function CryptoTable() {
       <p className="mt-2 text-center text-[10px] text-muted-foreground md:hidden">
         Swipe left or right to view market data
       </p>
+
+      <div className="mt-4">
+        <Pagination
+          page={page}
+          totalPages={MAX_COIN_PAGES}
+          onPageChange={goToPage}
+          onPrefetch={prefetchPage}
+        />
+      </div>
 
     </div>
   );

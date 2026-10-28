@@ -1,54 +1,16 @@
 import useSWR from 'swr';
 import { useEffect } from 'react';
 import { getEcho } from '@/lib/echo';
+import { apiUrl, fetchApi } from '@/lib/api';
+import type { RankedCoin } from '@/types/crypto';
 
-export type TrendingCoin = {
-  id: string;
-  name: string;
-  symbol: string;
-  image: string;
-  price: number;
-  price_change_percentage_24h: number;
-};
-
-type TrendingApiResponse = {
-  success: boolean;
-  coins: {
-    item: {
-      id: string;
-      name: string;
-      symbol: string;
-      small: string;
-      data: {
-        price: number;
-        price_change_percentage_24h?: {
-          usd?: number;
-        };
-      };
-    };
-  }[];
-};
-
-
-const fetcher = async (url: string): Promise<TrendingCoin[]> => {
-  const res = await fetch(url);
-  const json: TrendingApiResponse = await res.json();
-
-
-   return json.coins.map((coin) => ({
-    id: coin.item.id,
-    name: coin.item.name,
-    symbol: coin.item.symbol,
-    image: coin.item.small,
-    price: coin.item.data.price,
-    price_change_percentage_24h: coin.item.data.price_change_percentage_24h?.usd ?? 0,
-  }));
-};
+// Shared by the home card and the /trending page.
+const TRENDING_KEY = apiUrl('/api/trending');
 
 export function useTrendingCoins() {
-  const { data, error, isLoading, mutate } = useSWR<TrendingCoin[]>(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/trending`,
-    fetcher,
+  const { data, error, isLoading, isValidating, mutate } = useSWR<RankedCoin[]>(
+    TRENDING_KEY,
+    fetchApi,
     {
       refreshInterval: 30_000,
       revalidateOnFocus: false,
@@ -64,7 +26,7 @@ export function useTrendingCoins() {
 
     channel.listen(
       '.trending-coins.updated',
-      (event: { stats: TrendingCoin[] }) => {
+      (event: { stats: RankedCoin[] }) => {
         mutate(event.stats, false); // update cache without refetch
       }
     );
@@ -76,8 +38,8 @@ export function useTrendingCoins() {
 
   return {
     coins: data ?? [],
-    price_change_percentage_24h: data?.[0]?.price_change_percentage_24h ?? 0,
     isLoading,
+    isValidating,
     isError: !!error,
     mutate,
   };

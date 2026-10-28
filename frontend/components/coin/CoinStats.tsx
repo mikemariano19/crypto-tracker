@@ -8,23 +8,14 @@ import TopGainers from "@/components/coin/TopGainers"
 
 export default function CoinStats() {
     return (
-            <div className="flex flex-col">
-                <div className="px-2 md:px-3 lg:px-2">
-                    <div className="mx-auto max-w-5xl">
-                    <div className="grid grid-cols-1 lg:grid-cols-3 md:gap-x-4">
-                        <span className="col-span-1 hidden lg:block gap-x-8">
-                            <MarketCap />
-                            <TradingVolume />
-                        </span>
-                        <span className="col-span-1">
-                            <Trending />
-                        </span>
-                        <span className="col-span-1">
-                            <TopGainers />
-                        </span>
-                    </div>
-                    </div>
-                </div>
+        // Grid items stretch, so every card in a row shares one height
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="hidden gap-4 md:col-span-2 md:grid md:grid-cols-2 lg:col-span-1 lg:grid-cols-1 lg:grid-rows-2">
+                <MarketCap />
+                <TradingVolume />
             </div>
+            <Trending />
+            <TopGainers />
+        </div>
     )
 }

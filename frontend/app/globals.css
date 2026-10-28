@@ -127,4 +127,17 @@
   html {
     @apply font-sans;
   }
+  /* Tailwind v4 resets buttons to the default arrow; show a hand on
+     everything clickable so users can tell what is interactive. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  a[href],
+  summary,
+  select,
+  label[for] {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
 }

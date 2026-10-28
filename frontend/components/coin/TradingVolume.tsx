@@ -2,52 +2,41 @@
 
 import { useTradingVolume } from "@/hooks/useTradingVolume";
 import { Card, CardContent } from "@/components/ui/card";
-import { BarChart3 } from "lucide-react";
-
-function formatVolume(value: number | undefined) {
-  if (!value) return "$0";
-
-  if (value >= 1_000_000_000_000) {
-    return `$${(value / 1_000_000_000_000).toFixed(2)}T`;
-  }
-
-  if (value >= 1_000_000_000) {
-    return `$${(value / 1_000_000_000).toFixed(2)}B`;
-  }
-
-  if (value >= 1_000_000) {
-    return `$${(value / 1_000_000).toFixed(2)}M`;
-  }
-
-  if (value >= 1_000) {
-    return `$${(value / 1_000).toFixed(2)}K`;
-  }
-
-  return `$${value.toLocaleString()}`;
-}
+import { Activity } from "lucide-react";
+import { formatCompactUsd, formatFullUsd } from "@/lib/formatCompactUsd";
+import { METRIC_INFO } from "@/lib/metricInfo";
+import InfoTip from "@/components/InfoTip";
 
 export default function TradingVolume() {
   const { volume_24h } = useTradingVolume();
 
   return (
-    <Card className="w-full border-0 shadow-sm mt-4">
-      <CardContent className="px-4">
+    <Card className="h-full justify-center border-0 shadow-sm">
+      <CardContent>
 
-        <div className="flex items-center gap-2 mb-2">
+        <InfoTip
+          {...METRIC_INFO.globalVolume}
+          exactValue={formatFullUsd(volume_24h)}
+          className="mb-2 gap-2"
+        >
 
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <Activity className="h-4 w-4 text-muted-foreground" />
           </div>
 
           <span className="text-sm font-medium text-muted-foreground">
             24h Trading Volume
           </span>
 
-        </div>
+        </InfoTip>
 
-        <p className="text-2xl font-bold tracking-tight">
-          {formatVolume(volume_24h)}
-        </p>
+        {volume_24h ? (
+          <p className="truncate text-2xl font-bold tracking-tight">
+            {formatCompactUsd(volume_24h)}
+          </p>
+        ) : (
+          <div className="h-8 w-32 animate-pulse rounded bg-muted" />
+        )}
 
         <p className="mt-2 text-xs text-muted-foreground">
           Total trading activity across the market

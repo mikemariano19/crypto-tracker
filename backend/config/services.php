@@ -14,6 +14,12 @@ return [
     |
     */
 
+    'coingecko' => [
+        // Free "Demo" key from coingecko.com/en/api raises the limit to ~30 calls/min.
+        'key' => env('COINGECKO_API_KEY'),
+        'calls_per_minute' => (int) env('COINGECKO_CALLS_PER_MINUTE', env('COINGECKO_API_KEY') ? 25 : 8),
+    ],
+
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],
