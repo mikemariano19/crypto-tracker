@@ -98,6 +98,33 @@ class StaleCache
     }
 
     /**
+     * Same caching rules as respond(), but returns the data itself (or null
+     * if nothing could be loaded) for code that builds on cached data.
+     */
+    public static function remember(string $key, int $freshSeconds, callable $fetch): ?array
+    {
+        $entry = Cache::get("swr:{$key}");
+
+        if (self::isFresh($entry, $freshSeconds) || ($entry && Cache::has("swr:{$key}:cooldown"))) {
+            return $entry['data'];
+        }
+
+        $lock = Cache::lock("swr:{$key}:lock", 30);
+
+        if ($lock->get()) {
+            try {
+                $entry = self::refresh($key, $fetch) ?? $entry;
+            } catch (RequestException) {
+                // Upstream 404: keep whatever we had.
+            } finally {
+                $lock->release();
+            }
+        }
+
+        return is_array($entry) ? $entry['data'] : null;
+    }
+
+    /**
      * Refresh an entry shortly before it expires so user requests keep
      * hitting fresh cache. Used by the `market:warm` scheduled command.
      */
@@ -186,17 +213,27 @@ class StaleCache
 
     private static function hit(array $entry, string $source, bool $stale): JsonResponse
     {
+        return self::jsonResponse($entry['data'], $entry['cached_at'], $source, $stale, $entry['cached_at']);
+    }
+
+    /**
+     * The standard `{success, source, stale, cached_at, data}` envelope with
+     * short browser caching. `$version` changes whenever the data does, and
+     * becomes the ETag.
+     */
+    public static function jsonResponse(mixed $data, string $cachedAt, string $source, bool $stale, string $version): JsonResponse
+    {
         $response = response()->json([
             'success' => true,
             'source' => $source,
             'stale' => $stale,
-            'cached_at' => $entry['cached_at'],
-            'data' => $entry['data'],
+            'cached_at' => $cachedAt,
+            'data' => $data,
         ]);
 
         // Let browsers reuse the response briefly and revalidate cheaply:
         // an unchanged entry answers If-None-Match with an empty 304.
-        $response->setEtag(md5($entry['cached_at']));
+        $response->setEtag(md5($version));
         $response->setCache([
             'public' => true,
             'max_age' => 15,
@@ -216,7 +253,7 @@ class StaleCache
             : self::unavailable();
     }
 
-    private static function unavailable(): JsonResponse
+    public static function unavailable(): JsonResponse
     {
         return response()->json([
             'success' => false,

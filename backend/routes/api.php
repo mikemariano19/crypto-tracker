@@ -25,4 +25,5 @@ Route::get('/top-gainers', [TopGainerController::class, 'index']);
 Route::get('/market-stats', [MarketController::class, 'global']);
 Route::get('/trending', [MarketController::class, 'trending']);
 Route::get('/fear-greed', [MarketController::class, 'fearGreed']);
+Route::get('/search', [MarketController::class, 'search']);
 

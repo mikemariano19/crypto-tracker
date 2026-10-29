@@ -5,7 +5,7 @@ import { apiUrl, fetchApi } from '@/lib/api';
 
 
 
-type CryptoPrice = {
+export type CryptoPrice = {
     id: string;
     name: string;
     symbol: string;
@@ -27,6 +27,29 @@ export const MAX_COIN_PAGES = 20;
 // the persisted cache all share one entry.
 export function coinsPageKey(page: number) {
     return page === 1 ? apiUrl('/api/coin') : apiUrl(`/api/coin?page=${page}`);
+}
+
+/**
+ * Table rows for specific coins (the Favorites view). Pass an empty list
+ * to skip fetching.
+ */
+export function useCoinsByIds(ids: string[]) {
+    // Sorted so the same favorites in any order share one cache entry.
+    const key = ids.length > 0
+        ? apiUrl(`/api/coin?ids=${[...ids].sort().map(encodeURIComponent).join(',')}`)
+        : null;
+
+    const { data, error, isLoading } = useSWR<CryptoPrice[]>(key, fetchApi, {
+        refreshInterval: 30_000,
+        revalidateOnFocus: false,
+        keepPreviousData: true,
+    });
+
+    return {
+        coins: data ?? [],
+        isLoading,
+        isError: !!error,
+    };
 }
 
 export function useCryptoPrices(page = 1) {

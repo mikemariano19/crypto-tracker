@@ -18,7 +18,8 @@ type LoadResult =
 async function loadCoin(id: string): Promise<LoadResult> {
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/coin/${encodeURIComponent(id)}`,
+      // The server talks to Laravel directly; the browser goes through the /api rewrite.
+      `${process.env.API_BACKEND_URL ?? "http://localhost:8000"}/api/coin/${encodeURIComponent(id)}`,
       {
         // Reuse the response across visitors for a minute; the API already
         // caches CoinGecko, this saves the round trip too.

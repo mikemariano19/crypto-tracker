@@ -11,6 +11,13 @@ class CryptoPriceController extends Controller
 {
     public function index(Request $request)
     {
+        // ?ids=bitcoin,ethereum — the Favorites view.
+        if ($request->has('ids')) {
+            $ids = self::coinIds($request, MarketData::MAX_FAVORITE_IDS);
+
+            return is_array($ids) ? MarketData::respondCoinsByIds($ids) : $ids;
+        }
+
         $page = filter_var($request->query('page', 1), FILTER_VALIDATE_INT, [
             'options' => ['min_range' => 1, 'max_range' => MarketData::MAX_COIN_PAGES],
         ]);
@@ -23,6 +30,28 @@ class CryptoPriceController extends Controller
         }
 
         return MarketData::respondCoinsPage($page);
+    }
+
+    /**
+     * Sorted, de-duplicated, validated ?ids=, or the 422 response to send.
+     *
+     * @return string[]|\Illuminate\Http\JsonResponse
+     */
+    private static function coinIds(Request $request, int $max)
+    {
+        $ids = array_values(array_unique(array_filter(
+            explode(',', strtolower((string) $request->query('ids'))),
+        )));
+        sort($ids);
+
+        $valid = $ids
+            && count($ids) <= $max
+            && count(preg_grep('/^[a-z0-9-]{1,100}$/', $ids)) === count($ids);
+
+        return $valid ? $ids : response()->json([
+            'success' => false,
+            'error' => "ids must be 1–{$max} comma-separated coin ids.",
+        ], 422);
     }
 
     public function coin(string $id)

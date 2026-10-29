@@ -23,6 +23,13 @@ class MarketData
     // is another CoinGecko call against a tight free-tier rate limit.
     public const MAX_COIN_PAGES = 20;
 
+    // Most favorites one table request can ask for.
+    public const MAX_FAVORITE_IDS = 100;
+
+    // Search suggestions come from a local index of the top 1,000 coins
+    // (4 × 250), so typing never spends CoinGecko calls.
+    private const SEARCH_INDEX_PAGES = 4;
+
     /**
      * Cache key => [fresh seconds, fetcher].
      *
@@ -37,7 +44,19 @@ class MarketData
             'trending_coins' => [300, [self::class, 'trending']],
             // The index itself only changes once a day.
             'fear_greed' => [3600, [self::class, 'fearGreed']],
+            // Names and ranks barely move; rebuild twice a day.
+            'search_index' => [43200, [self::class, 'searchIndex']],
         ];
+    }
+
+    /**
+     * Data for a cache key without an HTTP response (null if unavailable).
+     */
+    public static function remember(string $key): ?array
+    {
+        [$freshSeconds, $fetch] = self::endpoints()[$key];
+
+        return StaleCache::remember($key, $freshSeconds, $fetch);
     }
 
     public static function respond(string $key)
@@ -58,14 +77,27 @@ class MarketData
             : StaleCache::respond("coins_page_{$page}", 180, fn () => self::coins($page));
     }
 
-    public static function coins(int $page = 1): array
+    /**
+     * Table rows for specific coins (the Favorites view), whatever their rank.
+     *
+     * @param  string[]  $ids  validated, sorted CoinGecko ids
+     */
+    public static function respondCoinsByIds(array $ids)
+    {
+        $key = 'coins_ids_' . md5(implode(',', $ids));
+
+        return StaleCache::respond($key, 120, fn () => self::coins(1, $ids));
+    }
+
+    public static function coins(int $page = 1, array $ids = []): array
     {
         $coins = CoinGecko::get('/coins/markets', [
             'vs_currency' => 'usd',
             'order' => 'market_cap_desc',
-            'per_page' => self::COINS_PER_PAGE,
+            'per_page' => $ids ? 250 : self::COINS_PER_PAGE,
             'page' => $page,
             'price_change_percentage' => '1h,24h,7d',
+            ...($ids ? ['ids' => implode(',', $ids)] : []),
         ]);
 
         return array_map(fn (array $coin) => [
@@ -194,6 +226,39 @@ class MarketData
                 ? now()->setTimestamp((int) $today['timestamp'])->toISOString()
                 : null,
         ];
+    }
+
+    /**
+     * Compact list of the top 1,000 coins for search suggestions.
+     */
+    public static function searchIndex(): array
+    {
+        $index = [];
+
+        for ($page = 1; $page <= self::SEARCH_INDEX_PAGES; $page++) {
+            $coins = CoinGecko::get('/coins/markets', [
+                'vs_currency' => 'usd',
+                'order' => 'market_cap_desc',
+                'per_page' => 250,
+                'page' => $page,
+            ]);
+
+            foreach ($coins as $coin) {
+                if (!isset($coin['id'], $coin['name'], $coin['symbol'])) {
+                    continue;
+                }
+
+                $index[] = [
+                    'id' => $coin['id'],
+                    'name' => $coin['name'],
+                    'symbol' => $coin['symbol'],
+                    'image' => $coin['image'] ?? null,
+                    'market_cap_rank' => $coin['market_cap_rank'] ?? null,
+                ];
+            }
+        }
+
+        return $index;
     }
 
     private static function parseMoney(mixed $value): ?float
