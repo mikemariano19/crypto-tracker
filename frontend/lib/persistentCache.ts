@@ -49,8 +49,16 @@ export function createPersistentCache() {
 
     map.forEach((state, key) => {
       // Keys starting with "$" are SWR internals (infinite/subscription).
-      // Charts are ~25KB per coin and range, too big for localStorage's quota.
-      if (key.startsWith('$') || key.includes('/chart') || state?.data === undefined) return;
+      // Charts are ~25KB per coin and range, too big for localStorage's quota;
+      // search results are throwaway, one entry per keystroke.
+      if (
+        key.startsWith('$') ||
+        key.includes('/chart') ||
+        key.includes('/api/search') ||
+        // Wallet prices keep their own fallback copy (useCoinPrices).
+        key.includes('/api/prices') ||
+        state?.data === undefined
+      ) return;
       out[key] = { data: state.data, savedAt: savedAt.get(key) ?? Date.now() };
     });
 

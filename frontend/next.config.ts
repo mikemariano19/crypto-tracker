@@ -12,7 +12,19 @@ const nextConfig: NextConfig = {
     allowedDevOrigins: [
         "192.168.1.15",
         "localhost",
+        // VS Code port forwarding, for testing on a phone.
+        "*.devtunnels.ms",
     ],
+    // The browser calls /api on this same origin and Next forwards it to
+    // Laravel, so a forwarded or LAN address only needs port 3000 exposed.
+    async rewrites() {
+        return [
+            {
+                source: "/api/:path*",
+                destination: `${process.env.API_BACKEND_URL ?? "http://localhost:8000"}/api/:path*`,
+            },
+        ];
+    },
     images: {
         remotePatterns: [
             {

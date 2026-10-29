@@ -4,9 +4,14 @@ import {
   COINS_PER_PAGE,
   MAX_COIN_PAGES,
   coinsPageKey,
+  useCoinsByIds,
   useCryptoPrices,
 } from "@/hooks/useCryptoPrices";
+import { useFavorites } from "@/hooks/useFavorites";
 import Pagination from "@/components/Pagination";
+import FavoriteButton from "@/components/FavoriteButton";
+import CoinSearch from "@/components/coin/CoinSearch";
+import { Star } from "lucide-react";
 import { fetchApi } from "@/lib/api";
 import Image from "next/image";
 import { useCallback, useRef } from "react";
@@ -72,11 +77,26 @@ export default function CryptoTable() {
   const searchParams = useSearchParams();
   // The page lives in the URL so refresh, sharing and Back all work.
   const page = parsePage(searchParams.get("page"));
+  const isFavoritesView = searchParams.get("view") === "favorites";
 
-  const { prices, isLoading, isError } = useCryptoPrices(page);
+  const { favorites } = useFavorites();
+  const allCoins = useCryptoPrices(page);
+  const favoriteCoins = useCoinsByIds(isFavoritesView ? favorites : []);
+
+  const rows = isFavoritesView
+    // Drop un-starred coins right away instead of waiting for the refetch.
+    ? favoriteCoins.coins.filter((coin) => favorites.includes(coin.id))
+    : allCoins.prices;
+  const isLoading = isFavoritesView ? favoriteCoins.isLoading : allCoins.isLoading;
+  const isError = isFavoritesView ? favoriteCoins.isError : allCoins.isError;
+
   // keepPreviousData shows the old page while the new one loads.
-  const isChangingPage = isLoading && prices.length > 0;
+  const isChangingPage = !isFavoritesView && allCoins.isLoading && allCoins.prices.length > 0;
   const firstRank = (page - 1) * COINS_PER_PAGE + 1;
+
+  const setView = (view: "all" | "favorites") => {
+    router.push(view === "favorites" ? "/?view=favorites" : "/", { scroll: false });
+  };
 
   const topRef = useRef<HTMLDivElement>(null);
   const prefetched = useRef(new Set<number>());
@@ -93,47 +113,101 @@ export default function CryptoTable() {
     fetchApi(coinsPageKey(target)).catch(() => prefetched.current.delete(target));
   }, [page]);
 
-  if (isLoading && prices.length === 0) {
-    return (
-      <div className="w-full">
-        <div className="rounded-xl border bg-white py-12 text-center text-sm text-muted-foreground">
-          Loading market data...
-        </div>
+  // Shown instead of the table when there are no rows to display.
+  let emptyState: React.ReactNode = null;
+
+  if (isFavoritesView && favorites.length === 0) {
+    emptyState = (
+      <div className="flex flex-col items-center gap-2 rounded-xl border bg-white px-4 py-12 text-center">
+        <Star className="h-8 w-8 text-amber-300" />
+        <p className="text-sm font-semibold text-gray-900">No favorites yet</p>
+        <p className="max-w-xs text-xs text-muted-foreground">
+          Tap the ☆ next to any coin, in the table or in search, to keep it here.
+          Favorites are saved in this browser.
+        </p>
+        <button
+          type="button"
+          onClick={() => setView("all")}
+          className="mt-2 rounded-md bg-gray-900 px-4 py-2 text-xs font-semibold text-white hover:bg-gray-700"
+        >
+          Browse all coins
+        </button>
+      </div>
+    );
+  } else if (rows.length === 0 && isError) {
+    emptyState = (
+      <div className="rounded-xl border bg-white py-12 text-center">
+        <p className="text-sm font-medium text-red-500">Failed to load prices</p>
+        <p className="mt-1 text-xs text-muted-foreground">Retrying automatically...</p>
+      </div>
+    );
+  } else if (rows.length === 0) {
+    emptyState = (
+      <div className="rounded-xl border bg-white py-12 text-center text-sm text-muted-foreground">
+        {isLoading ? "Loading market data..." : "No coins to show."}
       </div>
     );
   }
 
-  if (isError && prices.length === 0) {
-    return (
-      <div className="w-full">
-        <div className="rounded-xl border bg-white py-12 text-center">
-          <p className="text-sm font-medium text-red-500">
-            Failed to load prices
-          </p>
-
-          <p className="text-xs text-muted-foreground mt-1">
-            Retrying automatically...
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const tabClass = (selected: boolean) =>
+    `inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+      selected ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"
+    }`;
 
   return (
     <div className="w-full pt-2">
 
-      {/* Header (scroll target when changing pages, clear of the sticky navbar) */}
-      <div ref={topRef} className="mb-3 scroll-mt-20">
-        <h2 className="text-lg font-bold">
-          Cryptocurrency Market
-        </h2>
+      {/* Header + toolbar (scroll target when changing pages, clear of the sticky navbar) */}
+      <div ref={topRef} className="mb-3 flex scroll-mt-20 flex-col gap-3">
+        <div>
+          <h2 className="text-lg font-bold">
+            Cryptocurrency Market
+          </h2>
 
-        <p className="text-xs text-muted-foreground">
-          Top cryptocurrencies by market capitalization · Showing #{firstRank}–
-          {firstRank + COINS_PER_PAGE - 1}
-        </p>
+          <p className="text-xs text-muted-foreground">
+            {isFavoritesView
+              ? "Your favorite coins, saved in this browser"
+              : `Top cryptocurrencies by market capitalization · Showing #${firstRank}–${firstRank + COINS_PER_PAGE - 1}`}
+          </p>
+        </div>
+
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div role="tablist" aria-label="Table view" className="inline-flex w-fit rounded-lg bg-gray-100 p-1">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={!isFavoritesView}
+              onClick={() => setView("all")}
+              className={tabClass(!isFavoritesView)}
+            >
+              All Coins
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={isFavoritesView}
+              onClick={() => setView("favorites")}
+              className={tabClass(isFavoritesView)}
+            >
+              <Star
+                className={`h-3.5 w-3.5 ${
+                  isFavoritesView ? "fill-amber-400 text-amber-400" : ""
+                }`}
+              />
+              Favorites
+              {favorites.length > 0 && (
+                <span className="rounded-full bg-gray-200 px-1.5 text-[10px] text-gray-700">
+                  {favorites.length}
+                </span>
+              )}
+            </button>
+          </div>
+
+          <CoinSearch className="w-full sm:w-72" />
+        </div>
       </div>
 
+      {emptyState ?? (<>
       {/* Table wrapper */}
       <div
         aria-busy={isChangingPage}
@@ -153,7 +227,7 @@ export default function CryptoTable() {
               <TableHead
                 className="
                   sticky left-0 z-30
-                  w-9 min-w-9 max-w-9
+                  w-16 min-w-16 max-w-16
                   px-1
                   bg-gray-50
                   text-center
@@ -170,7 +244,7 @@ export default function CryptoTable() {
               ========================== */}
               <TableHead
                 className="
-                  sticky left-9 z-30
+                  sticky left-16 z-30
                   w-31.25
                   min-w-31.25
                   max-w-31.25
@@ -223,7 +297,7 @@ export default function CryptoTable() {
 
           <TableBody>
 
-            {prices.map((coin, index) => {
+            {rows.map((coin, index) => {
 
               const change1h =
                 coin.price_change_percentage_1h_in_currency;
@@ -256,7 +330,7 @@ export default function CryptoTable() {
                   <TableCell
                     className="
                       sticky left-0 z-20
-                      w-9 min-w-9 max-w-9
+                      w-16 min-w-16 max-w-16
                       px-1
                       py-3
                       bg-white
@@ -266,7 +340,12 @@ export default function CryptoTable() {
                       text-gray-400
                     "
                   >
-                    {firstRank + index}
+                    <div className="flex items-center justify-center gap-0.5">
+                      <FavoriteButton coinId={coin.id} coinName={coin.name} />
+                      <span>
+                        {isFavoritesView ? coin.market_cap_rank ?? "—" : firstRank + index}
+                      </span>
+                    </div>
                   </TableCell>
 
 
@@ -275,7 +354,7 @@ export default function CryptoTable() {
                   ========================== */}
                   <TableCell
                     className="
-                      sticky left-9 z-20
+                      sticky left-16 z-20
                       w-31.25
                       min-w-31.25
                       max-w-31.25
@@ -436,15 +515,18 @@ export default function CryptoTable() {
       <p className="mt-2 text-center text-[10px] text-muted-foreground md:hidden">
         Swipe left or right to view market data
       </p>
+      </>)}
 
-      <div className="mt-4">
-        <Pagination
-          page={page}
-          totalPages={MAX_COIN_PAGES}
-          onPageChange={goToPage}
-          onPrefetch={prefetchPage}
-        />
-      </div>
+      {!isFavoritesView && (
+        <div className="mt-4">
+          <Pagination
+            page={page}
+            totalPages={MAX_COIN_PAGES}
+            onPageChange={goToPage}
+            onPrefetch={prefetchPage}
+          />
+        </div>
+      )}
 
     </div>
   );
