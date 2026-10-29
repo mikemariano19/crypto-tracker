@@ -26,6 +26,9 @@ class MarketData
     // Most favorites one table request can ask for.
     public const MAX_FAVORITE_IDS = 100;
 
+    // Most coins one wallet-tracker price request can ask for.
+    public const MAX_PRICE_IDS = 250;
+
     // Search suggestions come from a local index of the top 1,000 coins
     // (4 × 250), so typing never spends CoinGecko calls.
     private const SEARCH_INDEX_PAGES = 4;

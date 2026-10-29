@@ -8,6 +8,7 @@ import {
   Newspaper,
   Info,
   Menu,
+  Wallet,
   X,
 } from "lucide-react";
 
@@ -16,6 +17,11 @@ const navItems = [
     name: "Cryptocurrency",
     href: "/",
     icon: Coins,
+  },
+  {
+    name: "Portfolio",
+    href: "/portfolio",
+    icon: Wallet,
   },
   {
     name: "News",

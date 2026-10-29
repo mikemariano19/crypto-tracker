@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Support\CoinGecko;
 use App\Support\MarketData;
+use App\Support\PriceCache;
 use App\Support\StaleCache;
 use Illuminate\Http\Request;
 
@@ -30,6 +31,17 @@ class CryptoPriceController extends Controller
         }
 
         return MarketData::respondCoinsPage($page);
+    }
+
+    /**
+     * USD and PHP prices with 24h change for the wallet tracker, every coin
+     * in one request: ?ids=bitcoin,ethereum
+     */
+    public function prices(Request $request)
+    {
+        $ids = self::coinIds($request, MarketData::MAX_PRICE_IDS);
+
+        return is_array($ids) ? PriceCache::respond($ids) : $ids;
     }
 
     /**

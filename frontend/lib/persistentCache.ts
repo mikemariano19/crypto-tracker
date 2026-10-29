@@ -55,6 +55,8 @@ export function createPersistentCache() {
         key.startsWith('$') ||
         key.includes('/chart') ||
         key.includes('/api/search') ||
+        // Wallet prices keep their own fallback copy (useCoinPrices).
+        key.includes('/api/prices') ||
         state?.data === undefined
       ) return;
       out[key] = { data: state.data, savedAt: savedAt.get(key) ?? Date.now() };

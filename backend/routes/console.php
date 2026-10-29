@@ -6,6 +6,7 @@ use App\Support\News\NewsDemo;
 use App\Support\News\NewsPipeline;
 use App\Support\News\NewsSchedule;
 use App\Support\StaleCache;
+use App\Support\WalletProviders;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -59,3 +60,10 @@ Artisan::command('news:demo {--clear : Remove all demo analysis}', function () {
 })->purpose('Fill stories with labelled sample sentiment to preview the UI (local only)');
 
 Schedule::job(new FetchNews)->cron(NewsSchedule::cron())->withoutOverlapping();
+
+Artisan::command('wallets:icons', function () {
+    $result = WalletProviders::warmIcons();
+    $this->info("Wallet provider icons: {$result['found']} found, {$result['missing']} missing, {$result['skipped']} already cached.");
+})->purpose('Download site icons for the curated wallet providers');
+
+Schedule::command('wallets:icons')->daily()->withoutOverlapping();

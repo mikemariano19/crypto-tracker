@@ -23,6 +23,27 @@ class MarketController extends Controller
         return MarketData::respond('fear_greed');
     }
 
+    /**
+     * Top 100 coins (id, name, symbol, image, rank) for the wallet
+     * tracker's coin picker. Changes slowly, so browsers keep it a while.
+     */
+    public function coinList()
+    {
+        $coins = CoinSearch::top();
+
+        if ($coins === []) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Coin list temporarily unavailable. Please try again shortly.',
+            ], 503, ['Retry-After' => 30]);
+        }
+
+        return response()
+            ->json(['success' => true, 'data' => $coins])
+            ->setPublic()
+            ->setMaxAge(3600);
+    }
+
     public function search(Request $request)
     {
         $query = trim((string) $request->query('q', ''));

@@ -5,6 +5,7 @@ use App\Http\Controllers\CryptoPriceController;
 use App\Http\Controllers\MarketController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\TopGainerController;
+use App\Http\Controllers\WalletProviderController;
 
 
 Route::get('/', function () {
@@ -21,6 +22,12 @@ Route::get('/coin', [CryptoPriceController::class, 'index']);
 Route::get('/coin/{id}', [CryptoPriceController::class, 'coin']);
 Route::get('/coin/{id}/chart', [CryptoPriceController::class, 'chart']);
 Route::get('/top-gainers', [TopGainerController::class, 'index']);
+
+// Wallet tracker: prices for the coins in the user's (browser-only) wallets.
+Route::get('/prices', [CryptoPriceController::class, 'prices']);
+Route::get('/coin-list', [MarketController::class, 'coinList']);
+Route::get('/wallet-providers', [WalletProviderController::class, 'index']);
+Route::get('/wallet-providers/{id}/icon', [WalletProviderController::class, 'icon']);
 
 
 Route::get('/market-stats', [MarketController::class, 'global']);
