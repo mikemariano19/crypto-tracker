@@ -31,7 +31,7 @@ export default function SourceMark({
         decoding="async"
         referrerPolicy="no-referrer"
         onError={() => setFailedUrl(iconUrl)}
-        className={cn("h-4 w-4 shrink-0 rounded-[4px] bg-white object-contain", className)}
+        className={cn("h-4 w-4 shrink-0 rounded-lg bg-white object-contain", className)}
       />
     );
   }
@@ -40,7 +40,7 @@ export default function SourceMark({
     <span
       aria-hidden="true"
       className={cn(
-        "inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] bg-gray-800 text-[9px] font-bold uppercase text-white",
+        "inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-lg bg-gray-800 text-[9px] font-bold uppercase text-white",
         className
       )}
     >
