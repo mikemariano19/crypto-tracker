@@ -71,8 +71,8 @@ export default function SectionNav({ sections }: { sections: NavSection[] }) {
   return (
     <nav aria-label="On this page" className="sticky top-14 z-40 lg:top-20 lg:z-auto lg:self-start">
       {/* Phone & tablet: chips */}
-      <div className="-mx-3 border-b bg-gray-50/95 px-3 py-2 backdrop-blur sm:-mx-4 sm:px-4 lg:hidden">
-        <ul ref={chipRow} className="flex gap-1.5 overflow-x-auto [scrollbar-width:none]">
+      <div className="-mx-3 border-b bg-gray-50/95 px-3 py-1 backdrop-blur sm:-mx-4 sm:px-4 lg:hidden">
+        <ul ref={chipRow} className="flex gap-1.5 overflow-x-auto px-1 py-1 [scrollbar-width:none]">
           {sections.map((section) => (
             <li key={section.id} className="shrink-0">
               <a

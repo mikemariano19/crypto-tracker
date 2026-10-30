@@ -38,7 +38,7 @@ export default function Changelog({
           <ul className="mt-2 space-y-2 text-sm">
             {roadmap.map((item) => (
               <li key={item} className="flex items-start gap-2">
-                <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">Planned</span>
+                <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium text-foreground">Planned</span>
                 <span>{item}</span>
               </li>
             ))}

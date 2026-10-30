@@ -1,11 +1,10 @@
-import { Fragment } from "react";
 import { cn } from "@/lib/utils";
 import type { AboutContent } from "@/content/about";
 
 // Each lane is drawn as boxes joined by inline-SVG arrows rather than one
 // big SVG, so the labels stay readable and wrap on a phone. Colours come
 // from theme tokens (currentColor), so it follows the site theme.
-// The numbered steps beside it are the text alternative; the drawing itself
+// The numbered steps below it are the text alternative; the drawing itself
 // is hidden from screen readers.
 
 function Arrow() {
@@ -23,8 +22,11 @@ export default function HowItWorksDiagram({ steps, lanes }: { steps: string[]; l
         <ul className="space-y-3">
           {lanes.map((lane) => (
             <li key={lane.output} className="flex flex-wrap items-center gap-x-1.5 gap-y-2 text-xs font-medium">
-              {lane.steps.map((step) => (
-                <Fragment key={step.label}>
+              {lane.steps.map((step, i) => (
+                // Each arrow stays with the box after it, so a wrapped line
+                // starts with "→ box" instead of ending on a loose arrow.
+                <span key={step.label} className="flex items-center gap-1.5">
+                  {i > 0 && <Arrow />}
                   <span
                     className={cn(
                       "rounded-md px-2 py-1",
@@ -36,10 +38,12 @@ export default function HowItWorksDiagram({ steps, lanes }: { steps: string[]; l
                     {step.label}
                     {step.pending && <span className="ml-1 font-normal">· coming soon</span>}
                   </span>
-                  <Arrow />
-                </Fragment>
+                </span>
               ))}
-              <span className="rounded-md bg-foreground px-2 py-1 text-background">{lane.output}</span>
+              <span className="flex items-center gap-1.5">
+                <Arrow />
+                <span className="rounded-md bg-foreground px-2 py-1 text-background">{lane.output}</span>
+              </span>
             </li>
           ))}
         </ul>

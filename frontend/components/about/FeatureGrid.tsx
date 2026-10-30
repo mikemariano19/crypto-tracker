@@ -28,7 +28,7 @@ function FeatureTile({ feature }: { feature: Feature }) {
         <p className="mt-1 flex-1 text-sm text-muted-foreground">{feature.description}</p>
         <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium">
           Open
-          <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+          <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0" aria-hidden="true" />
         </span>
       </Link>
     </li>

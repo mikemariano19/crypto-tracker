@@ -37,11 +37,11 @@ export default function RootLayout({
           <GlobalStats />
           <NavBar />
 
-          <div className="mx-auto w-full max-w-5xl px-3 sm:px-4">
+          <main className="mx-auto w-full max-w-5xl px-3 sm:px-4">
             <PageContent profile={profile}>
               {children}
             </PageContent>
-          </div>
+          </main>
 
           <SiteFooter />
         </Providers>

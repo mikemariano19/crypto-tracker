@@ -48,7 +48,7 @@ export default async function CoinProfilePage({ params }: Props) {
   const result = await loadCoin(id);
 
   return (
-    <main className="mt-4 w-full pb-10">
+    <div className="mt-4 w-full pb-10">
       {/* Server data renders immediately, then the client keeps it live.
           If the server couldn't load it, the client retries on its own. */}
       {result.status === "ok" && <CoinProfileLive id={id} initial={result.coin} />}
@@ -70,6 +70,6 @@ export default async function CoinProfilePage({ params }: Props) {
           </Link>
         </div>
       )}
-    </main>
+    </div>
   );
 }
