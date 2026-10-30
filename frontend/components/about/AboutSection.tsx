@@ -1,6 +1,7 @@
 /**
  * One About page section: an anchor (`/about#privacy`) with an <h2>.
- * `scroll-mt` keeps the heading clear of the sticky nav bar when jumped to.
+ * `scroll-mt` keeps the heading clear of the sticky nav bar (and, below
+ * desktop width, the section chips) when jumped to.
  */
 export default function AboutSection({
   id,
@@ -14,7 +15,7 @@ export default function AboutSection({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-20">
+    <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-32 lg:scroll-mt-20">
       <h2 id={`${id}-title`} className="text-xl font-bold tracking-tight">
         {title}
       </h2>

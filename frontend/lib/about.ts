@@ -68,3 +68,43 @@ export function formatAboutDate(isoDate: string): string {
 export function hasDeveloper(content: AboutContent): boolean {
   return !isPlaceholder(content.developer.name);
 }
+
+type JsonLd = Record<string, unknown>;
+
+/**
+ * schema.org data for the About page: the app as a free SoftwareApplication,
+ * plus its author as a Person only when the developer details are real.
+ */
+export function aboutJsonLd(content: AboutContent, siteUrl: string): JsonLd {
+  const app: JsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: content.app.name,
+    description: content.app.tagline,
+    url: siteUrl,
+    applicationCategory: 'FinanceApplication',
+    operatingSystem: 'Web',
+    softwareVersion: content.app.version,
+    dateModified: content.app.lastUpdated,
+    offers: { '@type': 'Offer', price: 0, priceCurrency: 'PHP' },
+  };
+
+  if (!hasDeveloper(content)) return app;
+
+  const developer = content.developer;
+  const links = filledLinks(content);
+  const website = links.find((link) => link.label === 'Website')?.href;
+  const profiles = links.filter((link) => link.label === 'GitHub' || link.label === 'LinkedIn').map((link) => link.href);
+
+  const person: JsonLd = { '@type': 'Person', name: developer.name };
+  if (!isPlaceholder(developer.role)) person.jobTitle = developer.role;
+  if (website) person.url = website;
+  if (profiles.length > 0) person.sameAs = profiles;
+
+  return { ...app, author: person };
+}
+
+/** JSON for a <script type="application/ld+json">, with "<" escaped so text can't close the tag. */
+export function serializeJsonLd(data: JsonLd): string {
+  return JSON.stringify(data).replace(/</g, '\\u003c');
+}

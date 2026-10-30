@@ -7,6 +7,7 @@ import NavBar from "@/components/coin/NavBar";
 import PageContent from "@/app/@header/coin/PageContent"
 import Providers from "@/app/providers";
 import SiteFooter from "@/components/SiteFooter";
+import { SITE_URL } from "@/lib/site";
 
 const fontSans = FontSans({
   subsets: ["latin"],
@@ -14,6 +15,8 @@ const fontSans = FontSans({
 });
 
 export const metadata: Metadata = {
+  // Lets pages give canonical and share-image URLs as plain paths.
+  metadataBase: new URL(SITE_URL),
   title: "Crypto Tracker",
   description: "Cryptocurrency market tracker",
 };
