@@ -6,6 +6,7 @@ import GlobalStats from "@/components/coin/GlobalStats";
 import NavBar from "@/components/coin/NavBar";
 import PageContent from "@/app/@header/coin/PageContent"
 import Providers from "@/app/providers";
+import SiteFooter from "@/components/SiteFooter";
 
 const fontSans = FontSans({
   subsets: ["latin"],
@@ -26,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={fontSans.variable}>
-      <body className="min-h-full w-full flex flex-col bg-gray-50">
+      <body className="min-h-dvh w-full flex flex-col bg-gray-50">
         <Providers>
           {/* Header bars span the full viewport; their contents and the
               page share one centered column with the same side gutter. */}
@@ -38,6 +39,8 @@ export default function RootLayout({
               {children}
             </PageContent>
           </div>
+
+          <SiteFooter />
         </Providers>
       </body>
     </html>
