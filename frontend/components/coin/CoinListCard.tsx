@@ -16,6 +16,7 @@ import { formatPercentage } from "@/lib/formatCryptoStats";
 import type { RankedCoin } from "@/types/crypto";
 import type { MetricInfo } from "@/lib/metricInfo";
 import InfoTip from "@/components/InfoTip";
+import PriceFlash from "@/components/PriceFlash";
 
 const PREVIEW_ROWS = 3;
 
@@ -44,7 +45,7 @@ export function ChangePill({ value }: { value: number | null }) {
   return (
     <span
       className={`inline-flex shrink-0 items-center gap-0.5 rounded-full px-2 py-1 text-xs font-semibold ${
-        isPositive ? "bg-green-50 text-green-600" : "bg-red-50 text-red-500"
+        isPositive ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"
       }`}
     >
       {isPositive ? (
@@ -158,9 +159,9 @@ export default function CoinListCard({
 
                 {variant === "price" ? (
                   <div className="flex shrink-0 flex-col items-end gap-0.5">
-                    <p className="text-xs font-medium">
+                    <PriceFlash value={coin.price} className="text-xs font-medium">
                       ${formatCryptoPrice(coin.price)}
-                    </p>
+                    </PriceFlash>
                     <ChangePill value={coin.price_change_percentage_24h} />
                   </div>
                 ) : (

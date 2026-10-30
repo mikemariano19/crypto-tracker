@@ -39,8 +39,8 @@ export default function MarketCap() {
             <div
               className={`flex items-center gap-0.5 rounded-full px-2 py-1 text-xs font-semibold ${
                 isPositive
-                  ? "bg-green-50 text-green-600"
-                  : "bg-red-50 text-red-500"
+                  ? "bg-green-50 text-green-700"
+                  : "bg-red-50 text-red-600"
               }`}
             >
               {isPositive ? (

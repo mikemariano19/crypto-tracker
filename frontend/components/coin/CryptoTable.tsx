@@ -10,6 +10,7 @@ import {
 import { useFavorites } from "@/hooks/useFavorites";
 import Pagination from "@/components/Pagination";
 import FavoriteButton from "@/components/FavoriteButton";
+import PriceFlash from "@/components/PriceFlash";
 import CoinSearch from "@/components/coin/CoinSearch";
 import { Star } from "lucide-react";
 import { fetchApi } from "@/lib/api";
@@ -56,9 +57,9 @@ function PercentageCell({
     <span
       className={
         isPositive
-          ? "font-medium text-green-600"
+          ? "font-medium text-green-700"
           : isNegative
-          ? "font-medium text-red-500"
+          ? "font-medium text-red-600"
           : "font-medium text-gray-500"
       }
     >
@@ -418,7 +419,9 @@ export default function CryptoTable() {
                       font-semibold
                     "
                   >
-                    ${formatCryptoPrice(coin.current_price)}
+                    <PriceFlash value={coin.current_price}>
+                      ${formatCryptoPrice(coin.current_price)}
+                    </PriceFlash>
                   </TableCell>
 
 
