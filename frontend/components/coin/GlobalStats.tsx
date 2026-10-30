@@ -27,7 +27,7 @@ function Change({ value }: { value: number | null | undefined }) {
   return (
     <span
       className={`inline-flex items-center text-[11px] font-semibold ${
-        isUp ? "text-green-600" : "text-red-500"
+        isUp ? "text-green-700" : "text-red-600"
       }`}
     >
       {isUp ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
@@ -37,12 +37,13 @@ function Change({ value }: { value: number | null | undefined }) {
 }
 
 // alternative.me's bands: 0-24 extreme fear ... 75-100 extreme greed.
+// Text uses shades that reach 4.5:1 on white; the bars can stay bright.
 function sentimentColor(value: number) {
   if (value < 25) return { text: "text-red-600", bar: "bg-red-500" };
-  if (value < 45) return { text: "text-orange-500", bar: "bg-orange-400" };
-  if (value <= 55) return { text: "text-amber-500", bar: "bg-amber-400" };
-  if (value < 75) return { text: "text-lime-600", bar: "bg-lime-500" };
-  return { text: "text-green-600", bar: "bg-green-500" };
+  if (value < 45) return { text: "text-orange-700", bar: "bg-orange-400" };
+  if (value <= 55) return { text: "text-amber-700", bar: "bg-amber-400" };
+  if (value < 75) return { text: "text-lime-700", bar: "bg-lime-500" };
+  return { text: "text-green-700", bar: "bg-green-500" };
 }
 
 function CoinTicker({

@@ -19,7 +19,7 @@ export default function TopGainers() {
       moreLabel="View top 50 gainers"
       coins={coins}
       isValidating={isValidating}
-      variant="change"
+      variant="price"
     />
   );
 }

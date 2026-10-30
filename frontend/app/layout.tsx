@@ -6,6 +6,8 @@ import GlobalStats from "@/components/coin/GlobalStats";
 import NavBar from "@/components/coin/NavBar";
 import PageContent from "@/app/@header/coin/PageContent"
 import Providers from "@/app/providers";
+import SiteFooter from "@/components/SiteFooter";
+import { SITE_URL } from "@/lib/site";
 
 const fontSans = FontSans({
   subsets: ["latin"],
@@ -13,6 +15,8 @@ const fontSans = FontSans({
 });
 
 export const metadata: Metadata = {
+  // Lets pages give canonical and share-image URLs as plain paths.
+  metadataBase: new URL(SITE_URL),
   title: "Crypto Tracker",
   description: "Cryptocurrency market tracker",
 };
@@ -26,18 +30,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={fontSans.variable}>
-      <body className="min-h-full w-full flex flex-col bg-gray-50">
+      <body className="min-h-dvh w-full flex flex-col bg-gray-50">
         <Providers>
           {/* Header bars span the full viewport; their contents and the
               page share one centered column with the same side gutter. */}
           <GlobalStats />
           <NavBar />
 
-          <div className="mx-auto w-full max-w-5xl px-3 sm:px-4">
+          <main className="mx-auto w-full max-w-5xl px-3 sm:px-4">
             <PageContent profile={profile}>
               {children}
             </PageContent>
-          </div>
+          </main>
+
+          <SiteFooter />
         </Providers>
       </body>
     </html>

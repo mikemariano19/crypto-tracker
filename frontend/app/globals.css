@@ -140,4 +140,10 @@
   button:disabled {
     cursor: not-allowed;
   }
+  /* The faint default ring is hard to spot on white; keyboard users get a
+     solid outline on links. :where keeps it easy for a component to override. */
+  :where(a[href]):focus-visible {
+    outline: 2px solid var(--foreground);
+    outline-offset: 2px;
+  }
 }
