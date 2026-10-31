@@ -12,8 +12,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Portfolio total in the chosen currency (≈ the other one beside it), 24h
- * change, profit/loss where buy prices are set, price freshness and the
- * allocation bar. When wallets are
+ * change, price freshness and the allocation bar. When wallets are
  * filtered, the shown wallets' total leads and the full total follows.
  */
 export default function PortfolioSummary({
@@ -50,7 +49,6 @@ export default function PortfolioSummary({
   const other: Currency = currency === "usd" ? "php" : "usd";
   const lead = shown ?? totals;
   const missing = totals.missingCoins.length;
-  const uncosted = lead.pnl?.uncostedCount ?? 0;
 
   return (
     <section className="rounded-xl border bg-white p-4 shadow-sm sm:p-5" aria-labelledby="portfolio-total-label">
@@ -92,12 +90,6 @@ export default function PortfolioSummary({
             <ChangeText value={lead.change24h} pct={lead.change24hPct} currency={currency} />
           </span>
         )}
-        {!pricesLoading && lead.pnl && (
-          <span className="inline-flex items-center gap-1.5">
-            <span className="text-muted-foreground">Profit/loss</span>
-            <ChangeText value={lead.pnl.pnl} pct={lead.pnl.pct} currency={currency} />
-          </span>
-        )}
         <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
           {updatedAt !== null && <>Prices updated {formatClock(updatedAt)} ·</>}
           <button
@@ -113,11 +105,6 @@ export default function PortfolioSummary({
         {missing > 0 && !pricesLoading && (
           <span className="text-xs text-muted-foreground">
             · {missing} {missing === 1 ? "coin" : "coins"} without price
-          </span>
-        )}
-        {uncosted > 0 && !pricesLoading && (
-          <span className="text-xs text-muted-foreground">
-            · profit/loss leaves out {uncosted} {uncosted === 1 ? "holding" : "holdings"} with no buy price
           </span>
         )}
       </div>
