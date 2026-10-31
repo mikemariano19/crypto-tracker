@@ -1,6 +1,7 @@
 import {
   DEFAULT_HOLDING_SORT,
   PROVIDER_ID_PATTERN,
+  type BuyPrice,
   type Currency,
   type Holding,
   type HoldingSort,
@@ -8,7 +9,16 @@ import {
   type Wallet,
   type WalletSort,
 } from '@/lib/wallet/schema';
-import { SECRET_WARNING, addAmounts, looksLikeSecret, parseAmount, walletNameError, walletNoteError } from '@/lib/wallet/validate';
+import {
+  SECRET_WARNING,
+  addAmounts,
+  averageBuyPrice,
+  looksLikeSecret,
+  parseAmount,
+  parseBuyPrice,
+  walletNameError,
+  walletNoteError,
+} from '@/lib/wallet/validate';
 
 // Pure state transitions for the wallet store: (state, input) → new state,
 // or an error message for the form. No storage or React in here.
@@ -19,6 +29,9 @@ export type ActionResult = { ok: true; state: StoredState } | { ok: false; error
 export type CoinPick = Pick<Holding, 'coinId' | 'symbol' | 'name' | 'image'>;
 
 export type AddMode = 'add' | 'replace';
+
+/** The optional buy price field as typed; a blank price means none. */
+export type BuyPriceInput = { price: string; currency: Currency };
 
 type Clock = { now: () => string; newId: () => string };
 
@@ -97,7 +110,8 @@ export function setCollapsed(state: StoredState, walletId: string, collapsed: bo
 
 /**
  * Adds a coin to a wallet. If the wallet already holds it, `mode` decides
- * whether the amount is added to the existing one or replaces it.
+ * whether the amount is added to the existing one or replaces it. A buy
+ * price on a top-up is averaged in; left blank, the old average stays.
  */
 export function addHolding(
   state: StoredState,
@@ -105,10 +119,14 @@ export function addHolding(
   coin: CoinPick,
   amountInput: string,
   mode: AddMode,
-  clock: Clock
+  clock: Clock,
+  buyPriceInput?: BuyPriceInput
 ): ActionResult {
   const parsed = parseAmount(amountInput);
   if (!parsed.ok) return fail(parsed.error);
+
+  const price = parseBuyPrice(buyPriceInput?.price ?? '');
+  if (!price.ok) return fail(price.error);
 
   return updateWallet(state, walletId, (wallet) => {
     const existing = wallet.holdings.find((holding) => holding.coinId === coin.coinId);
@@ -116,12 +134,26 @@ export function addHolding(
 
     if (parseAmount(amount).ok === false) return 'The new total is too large.';
 
+    let buyPrice: BuyPrice | undefined =
+      price.price && buyPriceInput ? { price: price.price, currency: buyPriceInput.currency } : undefined;
+    const held = existing?.buyPrice;
+
+    if (existing && mode === 'add' && buyPrice) {
+      // Averaging needs a price for what's already held too.
+      if (!held) return `Your current ${existing.symbol} has no buy price. Edit it to set one first, or replace the amount.`;
+      if (held.currency !== buyPrice.currency) return `Enter the buy price in ${held.currency.toUpperCase()}, like the rest of this coin.`;
+      buyPrice = { ...held, price: averageBuyPrice(existing.amount, held.price, parsed.amount, buyPrice.price) };
+    } else if (!buyPrice) {
+      buyPrice = held;
+    }
+
     const holding: Holding = {
       coinId: coin.coinId,
       symbol: coin.symbol.toUpperCase(),
       name: coin.name,
       image: coin.image ?? existing?.image,
       amount,
+      buyPrice,
       updatedAt: clock.now(),
     };
 
@@ -134,15 +166,28 @@ export function addHolding(
   });
 }
 
+/**
+ * Sets a holding's amount and, when `buyPriceInput` is given, its buy price
+ * (blank clears it). Without it the buy price is left alone.
+ */
 export function updateHolding(
   state: StoredState,
   walletId: string,
   coinId: string,
   amountInput: string,
-  clock: Pick<Clock, 'now'>
+  clock: Pick<Clock, 'now'>,
+  buyPriceInput?: BuyPriceInput
 ): ActionResult {
   const parsed = parseAmount(amountInput);
   if (!parsed.ok) return fail(parsed.error);
+
+  const price = parseBuyPrice(buyPriceInput?.price ?? '');
+  if (!price.ok) return fail(price.error);
+
+  const buyPriceFor = (holding: Holding): BuyPrice | undefined => {
+    if (!buyPriceInput) return holding.buyPrice;
+    return price.price ? { price: price.price, currency: buyPriceInput.currency } : undefined;
+  };
 
   return updateWallet(state, walletId, (wallet) => {
     if (!wallet.holdings.some((holding) => holding.coinId === coinId)) {
@@ -152,7 +197,9 @@ export function updateHolding(
     return {
       ...wallet,
       holdings: wallet.holdings.map((holding) =>
-        holding.coinId === coinId ? { ...holding, amount: parsed.amount, updatedAt: clock.now() } : holding
+        holding.coinId === coinId
+          ? { ...holding, amount: parsed.amount, buyPrice: buyPriceFor(holding), updatedAt: clock.now() }
+          : holding
       ),
     };
   });

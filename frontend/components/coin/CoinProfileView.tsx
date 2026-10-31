@@ -26,6 +26,7 @@ import CryptoChart from "@/components/coin/CryptoChart";
 import UpdatedAgo from "@/components/UpdatedAgo";
 import InfoTip from "@/components/InfoTip";
 import FavoriteButton from "@/components/FavoriteButton";
+import AlertButton from "@/components/alerts/AlertButton";
 import { METRIC_INFO, type MetricInfo } from "@/lib/metricInfo";
 import type { CoinProfile } from "@/types/crypto";
 
@@ -248,6 +249,7 @@ export default function CoinProfileView({ coin }: { coin: CoinProfile }) {
 
             <div className="flex items-center gap-3">
               <UpdatedAgo timestamp={coin.last_updated} />
+              <AlertButton coin={{ coinId: coin.id, symbol: coin.symbol, name: coin.name, image: coin.image ?? undefined }} />
               <FavoriteButton coinId={coin.id} coinName={coin.name} size="md" />
             </div>
           </div>

@@ -69,14 +69,14 @@ export default function SentimentTrendChart({
           <div className="h-32 w-full" role="img" aria-label={latest ? `Latest: ${latest.bullish} percent bullish, ${latest.bearish} percent bearish` : undefined}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                <CartesianGrid stroke="#f1f5f9" vertical={false} />
+                <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
                 <XAxis
                   dataKey="time"
                   type="number"
                   scale="time"
                   domain={["dataMin", "dataMax"]}
                   tickFormatter={(value: number) => new Date(value).toLocaleDateString(undefined, { weekday: "short" })}
-                  tick={{ fontSize: 10, fill: "#9ca3af" }}
+                  tick={{ fontSize: 10, fill: "var(--chart-axis)" }}
                   tickLine={false}
                   axisLine={false}
                   minTickGap={24}
@@ -85,19 +85,19 @@ export default function SentimentTrendChart({
                   domain={[0, 100]}
                   ticks={[0, 50, 100]}
                   tickFormatter={(value: number) => `${value}%`}
-                  tick={{ fontSize: 10, fill: "#9ca3af" }}
+                  tick={{ fontSize: 10, fill: "var(--chart-axis)" }}
                   tickLine={false}
                   axisLine={false}
                   width={34}
                 />
-                <Tooltip content={<TrendTooltip />} cursor={{ stroke: "#9ca3af", strokeDasharray: "4 4" }} isAnimationActive={false} />
+                <Tooltip content={<TrendTooltip />} cursor={{ stroke: "var(--chart-axis)", strokeDasharray: "4 4" }} isAnimationActive={false} />
                 <Line
                   type="monotone"
                   dataKey="bullish"
                   stroke={SENTIMENT_STYLES.bullish.line}
                   strokeWidth={2}
                   dot={false}
-                  activeDot={{ r: 4, stroke: "#ffffff", strokeWidth: 2 }}
+                  activeDot={{ r: 4, stroke: "var(--card)", strokeWidth: 2 }}
                   isAnimationActive={false}
                 />
                 <Line
@@ -106,7 +106,7 @@ export default function SentimentTrendChart({
                   stroke={SENTIMENT_STYLES.bearish.line}
                   strokeWidth={2}
                   dot={false}
-                  activeDot={{ r: 4, stroke: "#ffffff", strokeWidth: 2 }}
+                  activeDot={{ r: 4, stroke: "var(--card)", strokeWidth: 2 }}
                   isAnimationActive={false}
                 />
               </LineChart>

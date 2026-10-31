@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
+  Bell,
   Coins,
   Newspaper,
   Info,
@@ -11,6 +12,7 @@ import {
   Wallet,
   X,
 } from "lucide-react";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const navItems = [
   {
@@ -22,6 +24,11 @@ const navItems = [
     name: "Portfolio",
     href: "/portfolio",
     icon: Wallet,
+  },
+  {
+    name: "Alerts",
+    href: "/alerts",
+    icon: Bell,
   },
   {
     name: "News",
@@ -111,6 +118,8 @@ export default function NavBar() {
         </Link>
 
 
+        <div className="flex items-center gap-2">
+
         {/* =====================================================
             DESKTOP NAVIGATION
         ====================================================== */}
@@ -154,6 +163,9 @@ export default function NavBar() {
           })}
 
         </div>
+
+
+        <ThemeToggle />
 
 
         {/* =====================================================
@@ -262,6 +274,8 @@ export default function NavBar() {
 
             </div>
           )}
+
+        </div>
 
         </div>
 

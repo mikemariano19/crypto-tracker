@@ -81,27 +81,106 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  /* Chart chrome (Recharts takes these as SVG colours) */
+  --chart-grid: oklch(0.968 0.007 248);
+  --chart-axis: oklch(0.707 0.022 261);
+  --chart-volume: oklch(0.869 0.022 253);
+  color-scheme: light;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: oklch(0.17 0.018 264);
+  --foreground: oklch(0.96 0.004 264);
+  --card: oklch(0.21 0.02 264);
+  --card-foreground: oklch(0.96 0.004 264);
+  --popover: oklch(0.21 0.02 264);
+  --popover-foreground: oklch(0.96 0.004 264);
+  --primary: oklch(0.94 0.005 264);
+  --primary-foreground: oklch(0.21 0.02 264);
+  --secondary: oklch(0.26 0.022 264);
+  --secondary-foreground: oklch(0.96 0.004 264);
+  --muted: oklch(0.26 0.022 264);
+  --muted-foreground: oklch(0.7 0.02 262);
+  --accent: oklch(0.26 0.022 264);
+  --accent-foreground: oklch(0.96 0.004 264);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
+  --border: oklch(0.31 0.024 262);
+  --input: oklch(0.35 0.024 262);
   --ring: oklch(0.556 0 0);
+  --chart-grid: oklch(0.27 0.022 264);
+  --chart-axis: oklch(0.6 0.022 262);
+  --chart-volume: oklch(0.42 0.026 260);
+  color-scheme: dark;
+
+  /* Components use Tailwind's palette directly (bg-white, text-gray-900,
+     bg-red-50, ...), so dark mode remaps the palette rather than every
+     class. Neutrals mirror (white is the card surface, gray-50 the page,
+     gray-900 the brightest text), so light-on-dark pairs keep their
+     contrast. For hues, 50-200 become dark tints of the 500, 600-950
+     mirror to 400-50, and 300-500 stay as they are. Add a shade here
+     when a component starts using a new one. */
+  --color-white: var(--card);
+  --color-gray-50: var(--background);
+  --color-gray-100: oklch(0.26 0.022 264);
+  --color-gray-200: oklch(0.31 0.024 262);
+  --color-gray-300: oklch(0.39 0.026 260);
+  --color-gray-400: oklch(0.55 0.025 262);
+  --color-gray-500: oklch(0.66 0.022 262);
+  --color-gray-600: oklch(0.74 0.018 260);
+  --color-gray-700: oklch(0.82 0.012 260);
+  --color-gray-800: oklch(0.89 0.008 262);
+  --color-gray-900: oklch(0.94 0.005 264);
+  --color-gray-950: oklch(0.97 0.003 264);
+
+  --color-slate-50: oklch(0.19 0.022 258);
+  --color-slate-100: oklch(0.26 0.026 258);
+  --color-slate-200: oklch(0.31 0.03 257);
+  --color-slate-300: oklch(0.42 0.034 257);
+  --color-slate-500: oklch(0.66 0.035 257);
+  --color-slate-600: oklch(0.74 0.03 256);
+  --color-slate-700: oklch(0.82 0.022 255);
+  --color-slate-800: oklch(0.89 0.014 254);
+
+  --color-red-50: color-mix(in oklab, oklch(63.7% 0.237 25.331) 14%, var(--card));
+  --color-red-200: color-mix(in oklab, oklch(63.7% 0.237 25.331) 32%, var(--card));
+  --color-red-600: oklch(70.4% 0.191 22.216);
+  --color-red-700: oklch(80.8% 0.114 19.571);
+  --color-red-800: oklch(88.5% 0.062 18.334);
+
+  --color-rose-50: color-mix(in oklab, oklch(64.5% 0.246 16.439) 14%, var(--card));
+  --color-rose-100: color-mix(in oklab, oklch(64.5% 0.246 16.439) 22%, var(--card));
+
+  --color-green-50: color-mix(in oklab, oklch(72.3% 0.219 149.579) 12%, var(--card));
+  --color-green-100: color-mix(in oklab, oklch(72.3% 0.219 149.579) 20%, var(--card));
+  --color-green-200: color-mix(in oklab, oklch(72.3% 0.219 149.579) 30%, var(--card));
+  --color-green-600: oklch(79.2% 0.209 151.711);
+  --color-green-700: oklch(87.1% 0.15 154.449);
+  --color-green-800: oklch(92.5% 0.084 155.995);
+  --color-green-900: oklch(96.2% 0.044 156.743);
+
+  --color-emerald-50: color-mix(in oklab, oklch(69.6% 0.17 162.48) 12%, var(--card));
+  --color-emerald-100: color-mix(in oklab, oklch(69.6% 0.17 162.48) 22%, var(--card));
+
+  --color-lime-700: oklch(89.7% 0.196 126.665);
+
+  --color-amber-50: color-mix(in oklab, oklch(76.9% 0.188 70.08) 12%, var(--card));
+  --color-amber-100: color-mix(in oklab, oklch(76.9% 0.188 70.08) 20%, var(--card));
+  --color-amber-200: color-mix(in oklab, oklch(76.9% 0.188 70.08) 32%, var(--card));
+  --color-amber-700: oklch(87.9% 0.169 91.605);
+  --color-amber-800: oklch(92.4% 0.12 95.746);
+  --color-amber-900: oklch(96.2% 0.059 95.617);
+  --color-amber-950: oklch(98.7% 0.022 95.277);
+
+  --color-orange-50: color-mix(in oklab, oklch(70.5% 0.213 47.604) 12%, var(--card));
+  --color-orange-700: oklch(83.7% 0.128 66.29);
+
+  --color-sky-50: color-mix(in oklab, oklch(68.5% 0.169 237.323) 12%, var(--card));
+  --color-sky-600: oklch(74.6% 0.16 232.661);
+
+  --color-indigo-100: color-mix(in oklab, oklch(58.5% 0.233 277.117) 22%, var(--card));
+
+  --color-violet-50: color-mix(in oklab, oklch(60.6% 0.25 292.717) 14%, var(--card));
+  --color-violet-700: oklch(81.1% 0.111 293.571);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);

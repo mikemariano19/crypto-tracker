@@ -20,8 +20,17 @@ const sortDir = z.enum(['asc', 'desc']);
 export const currencySchema = z.enum(['usd', 'php']);
 
 export const holdingSortSchema = z.object({
-  by: z.enum(['value', 'name', 'amount', 'change24h', 'price']),
+  by: z.enum(['value', 'name', 'amount', 'change24h', 'price', 'pnl']),
   dir: sortDir,
+});
+
+/**
+ * Average price paid per coin, in the currency it was entered in, so the
+ * number the user typed is the number they see back.
+ */
+export const buyPriceSchema = z.object({
+  price: z.string().regex(AMOUNT_PATTERN),
+  currency: currencySchema,
 });
 
 export const walletSortSchema = z.object({
@@ -35,6 +44,8 @@ export const holdingSchema = z.object({
   name: z.string().min(1).max(100),
   image: z.url({ protocol: /^https$/ }).optional(),
   amount: z.string().regex(AMOUNT_PATTERN),
+  // Optional, for profit/loss; holdings saved before it existed stay valid.
+  buyPrice: buyPriceSchema.optional(),
   updatedAt: z.iso.datetime(),
 });
 
@@ -71,6 +82,7 @@ export const storedStateSchema = z
 export type Currency = z.infer<typeof currencySchema>;
 export type HoldingSort = z.infer<typeof holdingSortSchema>;
 export type WalletSort = z.infer<typeof walletSortSchema>;
+export type BuyPrice = z.infer<typeof buyPriceSchema>;
 export type Holding = z.infer<typeof holdingSchema>;
 export type Wallet = z.infer<typeof walletSchema>;
 export type StoredState = z.infer<typeof storedStateSchema>;
