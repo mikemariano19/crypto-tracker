@@ -43,7 +43,7 @@ const RANGES: { label: string; days: ChartRange; period: string }[] = [
 
 const UP_COLOR = "#16a34a";
 const DOWN_COLOR = "#ef4444";
-const VOLUME_COLOR = "#cbd5e1";
+const VOLUME_COLOR = "var(--chart-volume)";
 
 const CHART_HEIGHT = "h-[300px] sm:h-[380px]";
 
@@ -269,7 +269,7 @@ export default function CryptoChart({ coinId, livePrice, liveUpdatedAt }: Props)
                 </linearGradient>
               </defs>
 
-              <CartesianGrid stroke="#f1f5f9" vertical={false} />
+              <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
 
               <XAxis
                 dataKey="timestamp"
@@ -277,7 +277,7 @@ export default function CryptoChart({ coinId, livePrice, liveUpdatedAt }: Props)
                 scale="time"
                 domain={["dataMin", "dataMax"]}
                 tickFormatter={(value: number) => formatTick(value, days)}
-                tick={{ fontSize: 11, fill: "#9ca3af" }}
+                tick={{ fontSize: 11, fill: "var(--chart-axis)" }}
                 tickLine={false}
                 axisLine={false}
                 minTickGap={40}
@@ -289,7 +289,7 @@ export default function CryptoChart({ coinId, livePrice, liveUpdatedAt }: Props)
                 orientation="right"
                 domain={summary.priceDomain}
                 tickFormatter={formatAxisPrice}
-                tick={{ fontSize: 11, fill: "#9ca3af" }}
+                tick={{ fontSize: 11, fill: "var(--chart-axis)" }}
                 tickLine={false}
                 axisLine={false}
                 tickCount={6}
@@ -300,7 +300,7 @@ export default function CryptoChart({ coinId, livePrice, liveUpdatedAt }: Props)
 
               <Tooltip
                 content={<ChartTooltip days={days} />}
-                cursor={{ stroke: "#9ca3af", strokeDasharray: "4 4" }}
+                cursor={{ stroke: "var(--chart-axis)", strokeDasharray: "4 4" }}
                 isAnimationActive={false}
               />
 
@@ -316,7 +316,7 @@ export default function CryptoChart({ coinId, livePrice, liveUpdatedAt }: Props)
               <ReferenceLine
                 yAxisId="price"
                 y={summary.first}
-                stroke="#9ca3af"
+                stroke="var(--chart-axis)"
                 strokeDasharray="3 3"
                 strokeOpacity={0.6}
               />
@@ -329,7 +329,7 @@ export default function CryptoChart({ coinId, livePrice, liveUpdatedAt }: Props)
                 strokeWidth={2}
                 fill={`url(#${gradientId})`}
                 dot={false}
-                activeDot={{ r: 4, fill: color, stroke: "#ffffff", strokeWidth: 2 }}
+                activeDot={{ r: 4, fill: color, stroke: "var(--card)", strokeWidth: 2 }}
                 isAnimationActive={false}
               />
             </ComposedChart>

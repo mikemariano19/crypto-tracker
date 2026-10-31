@@ -24,6 +24,22 @@ export type HoldingRow = {
   change24hPct: number | null;
   /** How much the value moved in 24h, in the selected currency. */
   change24hValue: Decimal | null;
+  /** amount × buy price, in the selected currency; null with no buy price. */
+  cost: Decimal | null;
+  /** value − cost; null when either is unknown. */
+  pnl: Decimal | null;
+  /** pnl ÷ cost in %; null when pnl is. */
+  pnlPct: Decimal | null;
+};
+
+/** Profit/loss over the holdings that have both a value and a buy price. */
+export type PnlTotals = {
+  cost: Decimal;
+  pnl: Decimal;
+  /** null when the covered cost is 0. */
+  pct: Decimal | null;
+  /** Priced holdings left out because they have no buy price. */
+  uncostedCount: number;
 };
 
 export type WalletSummary = {
@@ -34,6 +50,8 @@ export type WalletSummary = {
   change24h: Decimal;
   /** Holdings left out of the total because they have no price. */
   missingCount: number;
+  /** null when no holding has a buy price. */
+  pnl: PnlTotals | null;
 };
 
 export type PortfolioTotals = {
@@ -43,6 +61,8 @@ export type PortfolioTotals = {
   change24hPct: Decimal | null;
   /** Distinct coins with no price, excluded from the totals. */
   missingCoins: string[];
+  /** null when no holding has a buy price. */
+  pnl: PnlTotals | null;
 };
 
 export type AllocationSlice = {
@@ -77,10 +97,30 @@ export function change24hOf(value: Decimal, changePct: number): Decimal {
   return value.minus(value.div(factor));
 }
 
+/**
+ * The buy price in the selected currency. One entered in the other currency
+ * is converted at today's rate, taken from this coin's own USD and PHP
+ * quotes; null when there's no buy price or no rate.
+ */
+export function buyPriceIn(holding: Holding, quote: PriceQuote | undefined, currency: Currency): Decimal | null {
+  const buy = holding.buyPrice;
+  if (!buy) return null;
+  if (buy.currency === currency) return new Dec(buy.price);
+
+  const to = pick(quote, currency).price;
+  const from = pick(quote, buy.currency).price;
+  if (!to || !from) return null;
+
+  return new Dec(buy.price).times(toDec(to)).div(toDec(from));
+}
+
 export function holdingRow(holding: Holding, quote: PriceQuote | undefined, currency: Currency): HoldingRow {
   const { price, change } = pick(quote, currency);
   const priceDec = price === null ? null : toDec(price);
   const value = priceDec === null ? null : priceDec.times(holding.amount);
+  const buyPrice = buyPriceIn(holding, quote, currency);
+  const cost = buyPrice === null ? null : buyPrice.times(holding.amount);
+  const pnl = value !== null && cost !== null ? value.minus(cost) : null;
 
   return {
     coinId: holding.coinId,
@@ -92,7 +132,32 @@ export function holdingRow(holding: Holding, quote: PriceQuote | undefined, curr
     value,
     change24hPct: change,
     change24hValue: value !== null && change !== null ? change24hOf(value, change) : null,
+    cost,
+    pnl,
+    pnlPct: pnl !== null && cost !== null && cost.gt(0) ? pnl.div(cost).times(HUNDRED) : null,
   };
+}
+
+/** Adds up profit/loss over rows; null when none has a buy price. */
+export function pnlTotals(rows: readonly HoldingRow[]): PnlTotals | null {
+  let cost = ZERO;
+  let pnl = ZERO;
+  let costed = 0;
+  let uncostedCount = 0;
+
+  for (const row of rows) {
+    if (row.pnl !== null && row.cost !== null) {
+      cost = cost.plus(row.cost);
+      pnl = pnl.plus(row.pnl);
+      costed++;
+    } else if (row.value !== null) {
+      uncostedCount++;
+    }
+  }
+
+  if (costed === 0) return null;
+
+  return { cost, pnl, pct: cost.gt(0) ? pnl.div(cost).times(HUNDRED) : null, uncostedCount };
 }
 
 /**
@@ -112,6 +177,8 @@ export function sortHoldings(rows: readonly HoldingRow[], sort: HoldingSort): Ho
         return row.change24hPct === null ? null : toDec(row.change24hPct);
       case 'amount':
         return new Dec(row.amount);
+      case 'pnl':
+        return row.pnl;
       default:
         return null;
     }
@@ -152,7 +219,7 @@ export function summarizeWallet(wallet: Wallet, prices: PriceMap, currency: Curr
     return row;
   });
 
-  return { wallet, rows: sortHoldings(rows, wallet.holdingSort), total, change24h, missingCount };
+  return { wallet, rows: sortHoldings(rows, wallet.holdingSort), total, change24h, missingCount, pnl: pnlTotals(rows) };
 }
 
 export function sortWallets(summaries: readonly WalletSummary[], sort: WalletSort): WalletSummary[] {
@@ -197,6 +264,7 @@ export function portfolioTotals(summaries: readonly WalletSummary[]): PortfolioT
     change24h,
     change24hPct: before.gt(0) ? change24h.div(before).times(HUNDRED) : null,
     missingCoins: [...missing].sort(),
+    pnl: pnlTotals(summaries.flatMap((summary) => summary.rows)),
   };
 }
 

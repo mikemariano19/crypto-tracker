@@ -44,11 +44,11 @@ export type AmountResult = { ok: true; amount: string } | { ok: false; error: st
  * error to show inline. A lone comma is read as a decimal point only when
  * it can't be a thousands separator ("1,5" yes, "1,500" no).
  */
-export function parseAmount(input: string): AmountResult {
+export function parseAmount(input: string, what = 'Amount'): AmountResult {
   let text = input.trim().replace(/[\s_]/g, '');
 
   if (text === '') return { ok: false, error: 'Enter an amount.' };
-  if (text.startsWith('-')) return { ok: false, error: 'Amount can’t be negative.' };
+  if (text.startsWith('-')) return { ok: false, error: `${what} can’t be negative.` };
   if (/[eE]/.test(text)) return { ok: false, error: 'Write the full number, e.g. 0.00001.' };
   if (/[^0-9.,]/.test(text)) return { ok: false, error: 'Use digits and a decimal point only.' };
 
@@ -76,10 +76,33 @@ export function parseAmount(input: string): AmountResult {
 
   const value = new Dec(text.startsWith('.') ? `0${text}` : text);
 
-  if (value.lte(0)) return { ok: false, error: 'Amount must be more than 0.' };
-  if (value.gt(MAX_AMOUNT)) return { ok: false, error: 'That amount is too large.' };
+  if (value.lte(0)) return { ok: false, error: `${what} must be more than 0.` };
+  if (value.gt(MAX_AMOUNT)) return { ok: false, error: `That ${what.toLowerCase()} is too large.` };
 
   return { ok: true, amount: value.toFixed() };
+}
+
+export type BuyPriceResult = { ok: true; price: string | null } | { ok: false; error: string };
+
+/**
+ * The optional "buy price per coin" field: blank means none, anything else
+ * follows the amount rules.
+ */
+export function parseBuyPrice(input: string): BuyPriceResult {
+  if (input.trim() === '') return { ok: true, price: null };
+
+  const parsed = parseAmount(input, 'Price');
+  return parsed.ok ? { ok: true, price: parsed.amount } : parsed;
+}
+
+/**
+ * Average price after topping up: (held × avg + added × price) ÷ total,
+ * rounded to the 18 decimals a stored price can have.
+ */
+export function averageBuyPrice(heldAmount: string, heldPrice: string, addedAmount: string, addedPrice: string): string {
+  const cost = new Dec(heldAmount).times(heldPrice).plus(new Dec(addedAmount).times(addedPrice));
+  const total = new Dec(heldAmount).plus(addedAmount);
+  return cost.div(total).toDecimalPlaces(MAX_AMOUNT_DECIMALS).toFixed();
 }
 
 /**

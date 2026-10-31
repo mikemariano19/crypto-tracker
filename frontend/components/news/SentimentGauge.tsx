@@ -52,9 +52,9 @@ export default function SentimentGauge({
         <path d={arc(Math.PI * 0.645, Math.PI * 0.355)} stroke={SENTIMENT_STYLES.neutral.line} strokeWidth="7" fill="none" strokeLinecap="round" />
         <path d={arc(Math.PI * 0.31, 0)} stroke={SENTIMENT_STYLES.bullish.line} strokeWidth="7" fill="none" strokeLinecap="round" />
 
-        <line x1={CX} y1={CY} x2={tip.x} y2={tip.y} stroke="#111827" strokeWidth="2.5" strokeLinecap="round" />
-        <circle cx={CX} cy={CY} r="4" fill="#111827" />
-        <circle cx={CX} cy={CY} r="1.5" fill="#fff" />
+        <line x1={CX} y1={CY} x2={tip.x} y2={tip.y} stroke="var(--foreground)" strokeWidth="2.5" strokeLinecap="round" />
+        <circle cx={CX} cy={CY} r="4" fill="var(--foreground)" />
+        <circle cx={CX} cy={CY} r="1.5" fill="var(--card)" />
       </svg>
 
       <figcaption className="-mt-1 text-center">

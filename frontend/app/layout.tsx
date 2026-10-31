@@ -2,12 +2,14 @@
 import type { Metadata } from "next";
 import { Inter as FontSans } from "next/font/google";
 import "./globals.css";
+import AlertWatcher from "@/components/alerts/AlertWatcher";
 import GlobalStats from "@/components/coin/GlobalStats";
 import NavBar from "@/components/coin/NavBar";
 import PageContent from "@/app/@header/coin/PageContent"
 import Providers from "@/app/providers";
 import SiteFooter from "@/components/SiteFooter";
 import { SITE_URL } from "@/lib/site";
+import { THEME_INIT_SCRIPT } from "@/lib/theme";
 
 const fontSans = FontSans({
   subsets: ["latin"],
@@ -29,7 +31,11 @@ export default function RootLayout({
   profile: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={fontSans.variable}>
+    // The head script sets the theme class before React hydrates.
+    <html lang="en" className={fontSans.variable} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-dvh w-full flex flex-col bg-gray-50">
         <Providers>
           {/* Header bars span the full viewport; their contents and the
@@ -44,6 +50,7 @@ export default function RootLayout({
           </main>
 
           <SiteFooter />
+          <AlertWatcher />
         </Providers>
       </body>
     </html>

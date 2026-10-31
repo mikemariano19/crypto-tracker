@@ -4,7 +4,7 @@ import { DropdownMenu } from "radix-ui";
 import { ArrowDown, ArrowUp, ChevronsUpDown, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import ChangeText from "@/components/portfolio/ChangeText";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { amountIsShortened, formatAmount, formatMoney, formatPrice, type HoldingRow } from "@/lib/portfolio";
+import { amountIsShortened, formatAmount, formatMoney, formatPrice, formatSignedMoney, type HoldingRow } from "@/lib/portfolio";
 import type { Currency, HoldingSort } from "@/lib/wallet/schema";
 import { cn } from "@/lib/utils";
 
@@ -16,9 +16,10 @@ export const HOLDING_SORT_LABELS: Record<SortKey, string> = {
   amount: "Amount",
   change24h: "24h change",
   price: "Price",
+  pnl: "Profit/loss",
 };
 
-const HEADER_LABELS: Record<SortKey, string> = { ...HOLDING_SORT_LABELS, name: "Coin", change24h: "24h %" };
+const HEADER_LABELS: Record<SortKey, string> = { ...HOLDING_SORT_LABELS, name: "Coin", change24h: "24h %", pnl: "P/L" };
 
 /** Clicking the current column flips it; a new column starts on its natural order. */
 export function nextSort(current: HoldingSort, by: SortKey): HoldingSort {
@@ -65,6 +66,25 @@ function Money({ value, loading, currency, price = false }: { value: HoldingRow[
   return <span className="tabular-nums">{price ? formatPrice(value, currency) : formatMoney(value, currency)}</span>;
 }
 
+/** Profit/loss since bought: % on top, the amount below. "—" without a buy price. */
+function Pnl({ row, loading, currency }: { row: HoldingRow; loading: boolean; currency: Currency }) {
+  if (row.pnl === null) {
+    if (row.cost !== null && loading) return <Skeleton className="w-14" />;
+    return (
+      <span className="text-muted-foreground" title={row.cost === null ? "No buy price set" : undefined}>
+        —
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex flex-col items-end leading-tight">
+      <ChangeText pct={row.pnlPct} />
+      <span className="text-xs tabular-nums text-gray-500">{formatSignedMoney(row.pnl, currency)}</span>
+    </span>
+  );
+}
+
 /**
  * A wallet's coins: a sortable table from `sm` up, stacked rows on phones.
  * Only the layout that fits is rendered; with many wallets, rendering both
@@ -107,12 +127,13 @@ function DesktopTable({ rows, currency, sort, pricesLoading, onSort, onEdit, onR
       {/* Fixed widths so columns line up from one wallet card to the next */}
       <table className="w-full table-fixed text-sm">
         <colgroup>
-          <col className="w-[26%]" />
-          <col className="w-[17%]" />
-          <col className="w-[18%]" />
-          <col className="w-[18%]" />
-          <col className="w-[12%]" />
-          <col className="w-[9%]" />
+          <col className="w-[22%]" />
+          <col className="w-[14%]" />
+          <col className="w-[15%]" />
+          <col className="w-[16%]" />
+          <col className="w-[11%]" />
+          <col className="w-[14%]" />
+          <col className="w-[8%]" />
         </colgroup>
         <thead className="border-b text-xs">
           <tr>
@@ -121,6 +142,7 @@ function DesktopTable({ rows, currency, sort, pricesLoading, onSort, onEdit, onR
             <SortHeader by="price" sort={sort} onSort={onSort} />
             <SortHeader by="value" sort={sort} onSort={onSort} />
             <SortHeader by="change24h" sort={sort} onSort={onSort} />
+            <SortHeader by="pnl" sort={sort} onSort={onSort} />
             <th scope="col" className="px-3 py-2">
               <span className="sr-only">Actions</span>
             </th>
@@ -150,12 +172,15 @@ function DesktopTable({ rows, currency, sort, pricesLoading, onSort, onEdit, onR
               <td className="px-3 py-2.5 text-right">
                 {row.change24hPct === null && pricesLoading ? <Skeleton className="w-12" /> : <ChangeText pct={row.change24hPct} />}
               </td>
+              <td className="px-3 py-2.5 text-right">
+                <Pnl row={row} loading={pricesLoading} currency={currency} />
+              </td>
               <td className="px-3 py-2.5">
                 <span className="flex justify-end gap-0.5">
                   <button
                     type="button"
                     onClick={() => onEdit(row.coinId)}
-                    aria-label={`Edit ${row.symbol} amount`}
+                    aria-label={`Edit ${row.symbol}`}
                     className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
                   >
                     <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
@@ -199,6 +224,12 @@ function MobileList({ rows, currency, pricesLoading, onEdit, onRemove }: Props) 
               </span>
               {row.change24hPct === null && pricesLoading ? <Skeleton className="w-10" /> : <ChangeText pct={row.change24hPct} className="shrink-0" />}
             </div>
+            {row.pnl !== null && (
+              <div className="mt-0.5 flex items-baseline justify-between gap-2 text-xs text-gray-600">
+                <span>Profit/loss</span>
+                <ChangeText value={row.pnl} pct={row.pnlPct} currency={currency} className="shrink-0" />
+              </div>
+            )}
           </div>
 
           <DropdownMenu.Root>
@@ -214,7 +245,7 @@ function MobileList({ rows, currency, pricesLoading, onEdit, onRemove }: Props) 
                   onSelect={() => onEdit(row.coinId)}
                   className="flex cursor-pointer items-center gap-2 rounded-md px-2.5 py-2 text-sm outline-none data-highlighted:bg-gray-100"
                 >
-                  <Pencil className="h-3.5 w-3.5" aria-hidden="true" /> Edit amount
+                  <Pencil className="h-3.5 w-3.5" aria-hidden="true" /> Edit amount or price
                 </DropdownMenu.Item>
                 <DropdownMenu.Item
                   onSelect={() => onRemove(row.coinId)}

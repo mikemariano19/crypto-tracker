@@ -7,9 +7,9 @@ import Modal from "@/components/portfolio/Modal";
 import { useCoinPrices } from "@/hooks/useCoinPrices";
 import type { WalletActions } from "@/hooks/useWalletStore";
 import type { AddMode, CoinPick } from "@/lib/wallet/actions";
-import { formatAmount, formatMoney, holdingRow } from "@/lib/portfolio";
+import { formatAmount, formatMoney, formatPrice, holdingRow } from "@/lib/portfolio";
 import type { Currency, Holding, Wallet } from "@/lib/wallet/schema";
-import { addAmounts, parseAmount } from "@/lib/wallet/validate";
+import { Dec, MAX_AMOUNT_DECIMALS, addAmounts, parseAmount, parseBuyPrice } from "@/lib/wallet/validate";
 import { cn } from "@/lib/utils";
 
 export type HoldingFormTarget =
@@ -84,16 +84,25 @@ function HoldingFormBody({
     editing ? { coinId: editing.coinId, symbol: editing.symbol, name: editing.name, image: editing.image } : null
   );
   const [amount, setAmount] = useState(editing?.amount ?? "");
+  const [buyPrice, setBuyPrice] = useState(editing?.buyPrice?.price ?? "");
   const [mode, setMode] = useState<AddMode>("add");
   const [touched, setTouched] = useState(false);
+  const [priceTouched, setPriceTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const amountId = useId();
+  const priceId = useId();
   const amountRef = useRef<HTMLInputElement>(null);
 
   const { prices } = useCoinPrices(coin ? [coin.coinId] : []);
 
   const parsed = amount.trim() ? parseAmount(amount) : null;
   const existing = !editing && coin ? target.wallet.holdings.find((h) => h.coinId === coin.coinId) : undefined;
+  // A coin keeps the currency its buy price was first entered in, so a
+  // top-up can be averaged without guessing an exchange rate.
+  const held = editing?.buyPrice ?? existing?.buyPrice;
+  const priceCurrency: Currency = held?.currency ?? currency;
+  const parsedPrice = parseBuyPrice(buyPrice);
+  const marketPrice = coin ? prices[coin.coinId]?.[priceCurrency] ?? null : null;
   const finalAmount =
     parsed?.ok && existing && mode === "add" ? addAmounts(existing.amount, parsed.amount) : parsed?.ok ? parsed.amount : null;
 
@@ -108,10 +117,12 @@ function HoldingFormBody({
 
     if (!coin) return setError("Pick a coin first.");
     if (!parsed?.ok) return setError(parsed?.error ?? "Enter an amount.");
+    if (!parsedPrice.ok) return setPriceTouched(true);
 
+    const price = { price: buyPrice, currency: priceCurrency };
     const failure = editing
-      ? updateHolding(target.wallet.id, coin.coinId, amount)
-      : addHolding(target.wallet.id, coin, amount, existing ? mode : "add");
+      ? updateHolding(target.wallet.id, coin.coinId, amount, price)
+      : addHolding(target.wallet.id, coin, amount, existing ? mode : "add", price);
 
     if (failure) return setError(failure);
     onClose();
@@ -119,6 +130,12 @@ function HoldingFormBody({
 
   // Wait for blur or submit before complaining, so "0." on the way to "0.5" isn't an error.
   const amountError = touched && parsed && !parsed.ok ? parsed.error : null;
+  const priceError = priceTouched && !parsedPrice.ok ? parsedPrice.error : null;
+
+  const priceHint =
+    held && existing && mode === "add"
+      ? `Leave blank to keep your average of ${formatPrice(new Dec(held.price), held.currency)}. A new price is averaged in.`
+      : "What you paid per coin, on average. Optional; it’s used for profit and loss.";
 
   return (
     <form onSubmit={submit} noValidate className="flex flex-col gap-4">
@@ -186,6 +203,46 @@ function HoldingFormBody({
         </p>
       </div>
 
+      <div>
+        <div className="mb-1.5 flex items-baseline justify-between gap-2">
+          <label htmlFor={priceId} className="text-sm font-medium text-gray-800">
+            Buy price per coin <span className="font-normal text-gray-500">({priceCurrency.toUpperCase()}, optional)</span>
+          </label>
+          {marketPrice !== null && (
+            <button
+              type="button"
+              onClick={() => {
+                setBuyPrice(new Dec(String(marketPrice)).toDecimalPlaces(MAX_AMOUNT_DECIMALS).toFixed());
+                setPriceTouched(false);
+                setError(null);
+              }}
+              className="text-xs font-medium text-gray-600 underline-offset-2 hover:text-gray-900 hover:underline"
+            >
+              Use current price
+            </button>
+          )}
+        </div>
+        <input
+          id={priceId}
+          type="text"
+          inputMode="decimal"
+          autoComplete="off"
+          placeholder="0.00"
+          value={buyPrice}
+          onChange={(event) => {
+            setBuyPrice(event.target.value);
+            setError(null);
+          }}
+          onBlur={() => buyPrice.trim() && setPriceTouched(true)}
+          aria-invalid={Boolean(priceError)}
+          aria-describedby={`${priceId}-hint`}
+          className="h-10 w-full rounded-lg border bg-white px-3 text-sm tabular-nums outline-none focus-visible:border-gray-400 focus-visible:ring-3 focus-visible:ring-gray-200 aria-invalid:border-red-400"
+        />
+        <p id={`${priceId}-hint`} className={cn("mt-1.5 text-sm", priceError ? "text-red-700" : "text-gray-600")}>
+          {priceError ?? priceHint}
+        </p>
+      </div>
+
       {existing && (
         <fieldset className="rounded-lg border p-3">
           <legend className="px-1 text-sm font-medium text-gray-800">
@@ -202,7 +259,7 @@ function HoldingFormBody({
         </fieldset>
       )}
 
-      {error && error !== amountError && (
+      {error && error !== amountError && error !== priceError && (
         <p role="alert" className="text-sm text-red-700">
           {error}
         </p>
