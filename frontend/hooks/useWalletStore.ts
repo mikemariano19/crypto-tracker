@@ -1,6 +1,6 @@
 import { useMemo, useSyncExternalStore } from 'react';
 import * as actions from '@/lib/wallet/actions';
-import type { ActionResult, AddMode, BuyPriceInput, CoinPick, WalletInput } from '@/lib/wallet/actions';
+import type { ActionResult, AddMode, CoinPick, WalletInput } from '@/lib/wallet/actions';
 import { STORAGE_KEY, type Currency, type HoldingSort, type StoredState, type WalletSort } from '@/lib/wallet/schema';
 import { loadState, parseRaw, saveState, type Persistence } from '@/lib/wallet/storage';
 
@@ -122,10 +122,10 @@ const walletActions = {
     commit(actions.renameWallet(current(), walletId, input)),
   deleteWallet: (walletId: string) => commit(actions.deleteWallet(current(), walletId)),
   setCollapsed: (walletId: string, collapsed: boolean) => commit(actions.setCollapsed(current(), walletId, collapsed)),
-  addHolding: (walletId: string, coin: CoinPick, amount: string, mode: AddMode = 'add', buyPrice?: BuyPriceInput) =>
-    commit(actions.addHolding(current(), walletId, coin, amount, mode, clock, buyPrice)),
-  updateHolding: (walletId: string, coinId: string, amount: string, buyPrice?: BuyPriceInput) =>
-    commit(actions.updateHolding(current(), walletId, coinId, amount, clock, buyPrice)),
+  addHolding: (walletId: string, coin: CoinPick, amount: string, mode: AddMode = 'add') =>
+    commit(actions.addHolding(current(), walletId, coin, amount, mode, clock)),
+  updateHolding: (walletId: string, coinId: string, amount: string) =>
+    commit(actions.updateHolding(current(), walletId, coinId, amount, clock)),
   removeHolding: (walletId: string, coinId: string) => commit(actions.removeHolding(current(), walletId, coinId)),
   setCurrency: (currency: Currency) => commit(actions.setCurrency(current(), currency)),
   setWalletSort: (sort: WalletSort) => commit(actions.setWalletSort(current(), sort)),

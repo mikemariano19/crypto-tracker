@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
-  Bell,
   Coins,
   Newspaper,
   Info,
@@ -24,11 +23,6 @@ const navItems = [
     name: "Portfolio",
     href: "/portfolio",
     icon: Wallet,
-  },
-  {
-    name: "Alerts",
-    href: "/alerts",
-    icon: Bell,
   },
   {
     name: "News",

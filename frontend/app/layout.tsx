@@ -2,7 +2,6 @@
 import type { Metadata } from "next";
 import { Inter as FontSans } from "next/font/google";
 import "./globals.css";
-import AlertWatcher from "@/components/alerts/AlertWatcher";
 import GlobalStats from "@/components/coin/GlobalStats";
 import NavBar from "@/components/coin/NavBar";
 import PageContent from "@/app/@header/coin/PageContent"
@@ -50,7 +49,6 @@ export default function RootLayout({
           </main>
 
           <SiteFooter />
-          <AlertWatcher />
         </Providers>
       </body>
     </html>
