@@ -218,3 +218,28 @@ describe('formatting', () => {
     expect(amountIsShortened('0.25')).toBe(false);
   });
 });
+
+describe('other currencies', () => {
+  const rates = { eur: 0.9, jpy: 150 };
+
+  it('prices from USD at the given rate, with the USD 24h change', () => {
+    const row = holdingRow(holding('bitcoin', '2'), quote(100, 5), 'eur', rates);
+    expect(row.price?.toFixed()).toBe('90');
+    expect(row.value?.toFixed()).toBe('180');
+    expect(row.change24hPct).toBe(5);
+  });
+
+  it('keeps USD and PHP on their own quotes', () => {
+    expect(holdingRow(holding('bitcoin', '1'), quote(100, 1, 5800), 'php', rates).price?.toFixed()).toBe('5800');
+  });
+
+  it('has no price until the rate is known', () => {
+    expect(holdingRow(holding('bitcoin', '1'), quote(100), 'eur').value).toBeNull();
+    expect(summarizeWallet(wallet('Binance', [holding('bitcoin', '1')]), { bitcoin: quote(100) }, 'gbp', rates).missingCount).toBe(1);
+  });
+
+  it('formats in each currency’s own decimals', () => {
+    expect(formatMoney(new Dec('1234.5'), 'eur')).toBe('€1,234.50');
+    expect(formatMoney(new Dec('185185.4'), 'jpy')).toBe('¥185,185');
+  });
+});

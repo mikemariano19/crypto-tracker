@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import CoinCombobox from "@/components/portfolio/CoinCombobox";
 import Modal from "@/components/portfolio/Modal";
 import { useCoinPrices } from "@/hooks/useCoinPrices";
+import { useExchangeRates } from "@/hooks/useExchangeRates";
 import type { WalletActions } from "@/hooks/useWalletStore";
 import type { AddMode, CoinPick } from "@/lib/wallet/actions";
 import { formatAmount, formatMoney, holdingRow } from "@/lib/portfolio";
@@ -91,6 +92,8 @@ function HoldingFormBody({
   const amountRef = useRef<HTMLInputElement>(null);
 
   const { prices } = useCoinPrices(coin ? [coin.coinId] : []);
+  const { byCode } = useExchangeRates();
+  const rate = byCode.get(currency)?.per_usd;
 
   const parsed = amount.trim() ? parseAmount(amount) : null;
   const existing = !editing && coin ? target.wallet.holdings.find((h) => h.coinId === coin.coinId) : undefined;
@@ -99,7 +102,7 @@ function HoldingFormBody({
 
   const preview =
     coin && finalAmount
-      ? holdingRow({ ...coin, amount: finalAmount, updatedAt: "" }, prices[coin.coinId], currency).value
+      ? holdingRow({ ...coin, amount: finalAmount, updatedAt: "" }, prices[coin.coinId], currency, rate ? { [currency]: rate } : undefined).value
       : null;
 
   const submit = (event: React.FormEvent) => {

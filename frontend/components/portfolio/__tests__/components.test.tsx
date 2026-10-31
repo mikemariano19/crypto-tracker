@@ -2,7 +2,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import CoinCombobox from '@/components/portfolio/CoinCombobox';
-import CurrencyToggle from '@/components/portfolio/CurrencyToggle';
 import { NoMatches, NoWallets } from '@/components/portfolio/EmptyState';
 import { StalePricesBanner } from '@/components/portfolio/Notices';
 import type { SearchResult } from '@/hooks/useCoinSearch';
@@ -49,19 +48,6 @@ describe('StalePricesBanner', () => {
     const banner = screen.getByRole('status');
     expect(banner.textContent).toMatch(/Prices may be outdated/);
     expect(banner.textContent).toMatch(/13:40|1:40/);
-  });
-});
-
-describe('CurrencyToggle', () => {
-  it('marks the selected currency and reports changes', () => {
-    const onChange = vi.fn();
-    render(<CurrencyToggle value="usd" onChange={onChange} />);
-
-    expect(screen.getByRole('button', { name: 'USD' }).getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByRole('button', { name: 'PHP' }).getAttribute('aria-pressed')).toBe('false');
-
-    fireEvent.click(screen.getByRole('button', { name: 'PHP' }));
-    expect(onChange).toHaveBeenCalledWith('php');
   });
 });
 

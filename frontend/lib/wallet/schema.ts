@@ -17,7 +17,9 @@ export const AMOUNT_PATTERN = /^\d{1,16}(\.\d{1,18})?$/;
 
 const sortDir = z.enum(['asc', 'desc']);
 
-export const currencySchema = z.enum(['usd', 'php']);
+// Any lower-case ISO 4217 code ("usd", "eur", "jpy"). Was only usd/php, so
+// saved data from then still passes; the rates list says which are usable.
+export const currencySchema = z.string().regex(/^[a-z]{3}$/);
 
 export const holdingSortSchema = z.object({
   by: z.enum(['value', 'name', 'amount', 'change24h', 'price']),

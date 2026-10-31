@@ -43,6 +43,40 @@ export interface CoinProfile {
     atl: number | null;
     atl_change_percentage: number | null;
     atl_date: string | null;
+    // Optional: profiles cached in the browser before these existed lack them.
+    categories?: string[];
+    links?: CoinLinks;
+    contracts?: CoinContract[];
+}
+
+// Official links; every URL is http(s), checked by the API.
+export interface CoinLinks {
+    homepage: string | null;
+    whitepaper: string | null;
+    explorers: string[];
+    github: string | null;
+    twitter: string | null;
+    reddit: string | null;
+    telegram: string | null;
+}
+
+// A token's contract on one chain, e.g. { platform: "ethereum", address: "0x…" }.
+export interface CoinContract {
+    platform: string;
+    address: string;
+}
+
+// Shape returned by /api/coin/{id}/markets: top exchange pairs by volume.
+export interface CoinMarket {
+    exchange: string;
+    logo: string | null;
+    base: string;
+    target: string;
+    price: number | null;
+    volume: number | null;
+    spread: number | null;
+    trade_url: string | null;
+    last_traded_at: string | null;
 }
 
 // Shape returned by /api/top-gainers and /api/trending.

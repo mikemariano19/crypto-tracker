@@ -19,6 +19,8 @@ import {
   type ChartPoint,
   type ChartRange,
 } from "@/hooks/useCoinChart";
+import { useDisplayCurrency } from "@/hooks/useDisplayCurrency";
+import { formatFiatAxis, formatFiatCompact, formatFiatPrice, type Money } from "@/lib/money";
 
 type Props = {
   coinId: string;
@@ -31,6 +33,7 @@ type TooltipProps = {
   active?: boolean;
   payload?: Array<{ payload: ChartPoint }>;
   days: ChartRange;
+  money: Money;
 };
 
 const RANGES: { label: string; days: ChartRange; period: string }[] = [
@@ -47,35 +50,6 @@ const VOLUME_COLOR = "var(--chart-volume)";
 
 const CHART_HEIGHT = "h-[300px] sm:h-[380px]";
 
-function formatPrice(value: number) {
-  return value.toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: value >= 1 ? 2 : value >= 0.01 ? 5 : 8,
-  });
-}
-
-function formatAxisPrice(value: number) {
-  if (value >= 1_000) {
-    return `$${new Intl.NumberFormat("en-US", {
-      notation: "compact",
-      maximumFractionDigits: 2,
-    }).format(value)}`;
-  }
-
-  return `$${Number(value.toPrecision(4))}`;
-}
-
-function formatCompactUsd(value: number | null) {
-  if (value === null || !Number.isFinite(value)) return "—";
-
-  return `$${new Intl.NumberFormat("en-US", {
-    notation: "compact",
-    maximumFractionDigits: 2,
-  }).format(value)}`;
-}
-
 function formatTick(timestamp: number, days: ChartRange) {
   const date = new Date(timestamp);
 
@@ -90,7 +64,7 @@ function formatTick(timestamp: number, days: ChartRange) {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function ChartTooltip({ active, payload, days }: TooltipProps) {
+function ChartTooltip({ active, payload, days, money }: TooltipProps) {
   if (!active || !payload?.length) return null;
 
   const point = payload[0].payload;
@@ -113,14 +87,14 @@ function ChartTooltip({ active, payload, days }: TooltipProps) {
         <div className="flex items-center justify-between gap-4">
           <span className="text-xs text-gray-500">Price</span>
           <span className="text-sm font-bold text-gray-900">
-            {formatPrice(point.price)}
+            {formatFiatPrice(point.price, money)}
           </span>
         </div>
 
         <div className="flex items-center justify-between gap-4">
           <span className="text-xs text-gray-500">Volume</span>
           <span className="text-xs font-semibold text-gray-700">
-            {formatCompactUsd(point.volume)}
+            {formatFiatCompact(point.volume, money)}
           </span>
         </div>
       </div>
@@ -139,6 +113,8 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 export default function CryptoChart({ coinId, livePrice, liveUpdatedAt }: Props) {
   const [days, setDays] = useState<ChartRange>("7");
+  // History stays in USD; only the labels are converted.
+  const { money } = useDisplayCurrency();
   const {
     points: historyPoints,
     isLoading,
@@ -209,7 +185,7 @@ export default function CryptoChart({ coinId, livePrice, liveUpdatedAt }: Props)
           {summary ? (
             <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <span className="text-2xl font-bold tracking-tight text-gray-900">
-                {formatPrice(summary.last)}
+                {formatFiatPrice(summary.last, money)}
               </span>
 
               <span
@@ -288,7 +264,7 @@ export default function CryptoChart({ coinId, livePrice, liveUpdatedAt }: Props)
                 yAxisId="price"
                 orientation="right"
                 domain={summary.priceDomain}
-                tickFormatter={formatAxisPrice}
+                tickFormatter={(value: number) => formatFiatAxis(value, money)}
                 tick={{ fontSize: 11, fill: "var(--chart-axis)" }}
                 tickLine={false}
                 axisLine={false}
@@ -299,7 +275,7 @@ export default function CryptoChart({ coinId, livePrice, liveUpdatedAt }: Props)
               <YAxis yAxisId="volume" domain={summary.volumeDomain} hide />
 
               <Tooltip
-                content={<ChartTooltip days={days} />}
+                content={<ChartTooltip days={days} money={money} />}
                 cursor={{ stroke: "var(--chart-axis)", strokeDasharray: "4 4" }}
                 isAnimationActive={false}
               />
@@ -360,11 +336,11 @@ export default function CryptoChart({ coinId, livePrice, liveUpdatedAt }: Props)
       {/* Range stats */}
       {summary && (
         <div className="mt-4 grid grid-cols-3 gap-3 border-t pt-4">
-          <Stat label={`${range.label} Low`} value={formatPrice(summary.low)} />
-          <Stat label={`${range.label} High`} value={formatPrice(summary.high)} />
+          <Stat label={`${range.label} Low`} value={formatFiatPrice(summary.low, money)} />
+          <Stat label={`${range.label} High`} value={formatFiatPrice(summary.high, money)} />
           <Stat
             label="24h Volume"
-            value={formatCompactUsd(points[points.length - 1].volume)}
+            value={formatFiatCompact(points[points.length - 1].volume, money)}
           />
         </div>
       )}

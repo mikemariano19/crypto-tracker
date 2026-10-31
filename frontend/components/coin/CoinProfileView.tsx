@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Card,
   CardContent,
@@ -20,18 +22,21 @@ import Image from "next/image";
 
 import { formatNumber } from "@/lib/formatNumber";
 import { formatPercentage, formatDateWithAge } from "@/lib/formatCryptoStats";
-import { formatCryptoPrice } from "@/lib/formatCryptoPrices";
+import { formatFiatCompact, formatFiatPrice, type Money } from "@/lib/money";
 import ReadMore from "@/components/ReadMore";
 import CryptoChart from "@/components/coin/CryptoChart";
 import UpdatedAgo from "@/components/UpdatedAgo";
 import InfoTip from "@/components/InfoTip";
 import FavoriteButton from "@/components/FavoriteButton";
+import CoinConverter from "@/components/coin/CoinConverter";
+import CurrencyPicker from "@/components/coin/CurrencyPicker";
+import { useDisplayCurrency } from "@/hooks/useDisplayCurrency";
+import CoinHoldings from "@/components/coin/CoinHoldings";
+import CoinLinks from "@/components/coin/CoinLinks";
+import CoinMarkets from "@/components/coin/CoinMarkets";
+import CoinNews from "@/components/coin/CoinNews";
 import { METRIC_INFO, type MetricInfo } from "@/lib/metricInfo";
 import type { CoinProfile } from "@/types/crypto";
-
-function usd(value: number | null, format: (value: number) => string = formatNumber) {
-  return value === null ? "—" : `$${format(value)}`;
-}
 
 function StatCard({
   icon,
@@ -61,12 +66,14 @@ function ExtremeCard({
   change,
   date,
   tone,
+  money,
 }: {
   info: MetricInfo;
   price: number | null;
   change: number | null;
   date: string | null;
   tone: "high" | "low";
+  money: Money;
 }) {
   const isHigh = tone === "high";
 
@@ -79,7 +86,7 @@ function ExtremeCard({
               {info.title}
             </InfoTip>
             <p className="mt-1 text-xl font-bold">
-              {usd(price, formatCryptoPrice)}
+              {formatFiatPrice(price, money)}
             </p>
           </div>
 
@@ -133,7 +140,7 @@ function changeTone(value: number | null) {
  * Where the current price sits within today's range. CoinGecko updates the
  * 24h high/low less often than the price, so widen the range to include it.
  */
-function DayRange({ price, low, high }: { price: number; low: number; high: number }) {
+function DayRange({ price, low, high, money }: { price: number; low: number; high: number; money: Money }) {
   const rangeLow = Math.min(low, price);
   const rangeHigh = Math.max(high, price);
   const position = rangeHigh > rangeLow ? ((price - rangeLow) / (rangeHigh - rangeLow)) * 100 : 50;
@@ -149,10 +156,10 @@ function DayRange({ price, low, high }: { price: number; low: number; high: numb
 
       <div className="mt-2 flex justify-between text-xs">
         <span className="text-muted-foreground">
-          24h Low <span className="font-semibold text-foreground">${formatCryptoPrice(rangeLow)}</span>
+          24h Low <span className="font-semibold text-foreground">{formatFiatPrice(rangeLow, money)}</span>
         </span>
         <span className="text-muted-foreground">
-          24h High <span className="font-semibold text-foreground">${formatCryptoPrice(rangeHigh)}</span>
+          24h High <span className="font-semibold text-foreground">{formatFiatPrice(rangeHigh, money)}</span>
         </span>
       </div>
     </div>
@@ -202,6 +209,7 @@ const PERFORMANCE: { label: string; key: keyof CoinProfile }[] = [
 ];
 
 export default function CoinProfileView({ coin }: { coin: CoinProfile }) {
+  const { code, money, currencies, setCurrency } = useDisplayCurrency();
   const change = coin.price_change_percentage_24h ?? 0;
   const isPositive = change >= 0;
   const volumeToMarketCap =
@@ -243,11 +251,22 @@ export default function CoinProfileView({ coin }: { coin: CoinProfile }) {
                 <p className="text-sm text-muted-foreground">
                   {coin.name} price and market statistics
                 </p>
+
+                {coin.categories && coin.categories.length > 0 && (
+                  <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="Categories">
+                    {coin.categories.map((category) => (
+                      <li key={category} className="rounded-full border px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                        {category}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
 
             <div className="flex items-center gap-3">
               <UpdatedAgo timestamp={coin.last_updated} />
+              <CurrencyPicker currencies={currencies} value={code} onChange={setCurrency} size="sm" />
               <FavoriteButton coinId={coin.id} coinName={coin.name} size="md" />
             </div>
           </div>
@@ -256,7 +275,7 @@ export default function CoinProfileView({ coin }: { coin: CoinProfile }) {
             <div>
               <p className="mb-1 text-sm text-muted-foreground">Current Price</p>
               <div className="text-3xl font-bold tracking-tight sm:text-4xl">
-                {usd(coin.price, formatCryptoPrice)}
+                {formatFiatPrice(coin.price, money)}
               </div>
             </div>
 
@@ -270,7 +289,7 @@ export default function CoinProfileView({ coin }: { coin: CoinProfile }) {
                 {Math.abs(change).toFixed(2)}%
                 {coin.price_change_24h !== null && (
                   <span className="font-medium">
-                    ({coin.price_change_24h >= 0 ? "+" : "-"}${formatCryptoPrice(Math.abs(coin.price_change_24h))})
+                    ({coin.price_change_24h >= 0 ? "+" : "-"}{formatFiatPrice(Math.abs(coin.price_change_24h), money)})
                   </span>
                 )}
                 <span className="font-normal opacity-70">24h</span>
@@ -279,7 +298,7 @@ export default function CoinProfileView({ coin }: { coin: CoinProfile }) {
           </div>
 
           {coin.price !== null && coin.low_24h !== null && coin.high_24h !== null && (
-            <DayRange price={coin.price} low={coin.low_24h} high={coin.high_24h} />
+            <DayRange price={coin.price} low={coin.low_24h} high={coin.high_24h} money={money} />
           )}
 
           {/* Performance across timeframes */}
@@ -307,6 +326,12 @@ export default function CoinProfileView({ coin }: { coin: CoinProfile }) {
         liveUpdatedAt={coin.last_updated}
       />
 
+      {/* Converter and the user's own holdings */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <CoinConverter symbol={coin.symbol} usdPrice={coin.price} />
+        <CoinHoldings coinId={coin.id} symbol={coin.symbol} />
+      </div>
+
       {/* Market overview */}
       <div>
         <h2 className="mb-3 text-lg font-bold">Market Overview</h2>
@@ -315,17 +340,17 @@ export default function CoinProfileView({ coin }: { coin: CoinProfile }) {
           <StatCard
             icon={<CircleDollarSign className="h-4 w-4" />}
             info={METRIC_INFO.marketCap}
-            value={usd(coin.market_cap)}
+            value={formatFiatCompact(coin.market_cap, money)}
           />
           <StatCard
             icon={<Layers className="h-4 w-4" />}
             info={METRIC_INFO.fdv}
-            value={usd(coin.fully_diluted_valuation)}
+            value={formatFiatCompact(coin.fully_diluted_valuation, money)}
           />
           <StatCard
             icon={<BarChart3 className="h-4 w-4" />}
             info={METRIC_INFO.volume}
-            value={usd(coin.total_volume)}
+            value={formatFiatCompact(coin.total_volume, money)}
           />
           <StatCard
             icon={<Percent className="h-4 w-4" />}
@@ -346,9 +371,16 @@ export default function CoinProfileView({ coin }: { coin: CoinProfile }) {
         </div>
       </div>
 
+      <CoinNews symbol={coin.symbol} name={coin.name} />
+
       {/* Price history */}
       <div>
         <h2 className="mb-3 text-lg font-bold">Price History</h2>
+        {money.code !== "usd" && (
+          <p className="-mt-2 mb-3 text-xs text-muted-foreground">
+            Recorded in US dollars and shown in {code.toUpperCase()} at today’s exchange rate.
+          </p>
+        )}
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <ExtremeCard
@@ -357,6 +389,7 @@ export default function CoinProfileView({ coin }: { coin: CoinProfile }) {
             change={coin.ath_change_percentage}
             date={coin.ath_date}
             tone="high"
+            money={money}
           />
           <ExtremeCard
             info={METRIC_INFO.atl}
@@ -364,9 +397,14 @@ export default function CoinProfileView({ coin }: { coin: CoinProfile }) {
             change={coin.atl_change_percentage}
             date={coin.atl_date}
             tone="low"
+            money={money}
           />
         </div>
       </div>
+
+      <CoinMarkets coinId={coin.id} name={coin.name} />
+
+      <CoinLinks name={coin.name} links={coin.links} contracts={coin.contracts} />
 
       {/* Additional information */}
       <Card className="border-0 shadow-sm">
