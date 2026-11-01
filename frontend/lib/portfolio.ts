@@ -2,6 +2,10 @@ import type Decimal from 'decimal.js';
 import { Dec } from '@/lib/wallet/validate';
 import type { PriceMap, PriceQuote } from '@/lib/wallet/prices';
 import type { Currency, Holding, HoldingSort, Wallet, WalletSort } from '@/lib/wallet/schema';
+import { currencyDigits } from '@/lib/money';
+
+/** How many of each currency one US dollar buys, by lower-case code. */
+export type FxRates = Readonly<Record<string, number>>;
 
 // Everything the portfolio page derives from wallets + prices: values,
 // totals, 24h change, allocation, sorting and search. Pure functions over
@@ -54,13 +58,24 @@ export type AllocationSlice = {
   percent: number;
 };
 
-/** Quote fields for one currency. */
-function pick(quote: PriceQuote | undefined, currency: Currency): { price: number | null; change: number | null } {
+/**
+ * Price and 24h change in one currency. USD and PHP come straight from the
+ * quote; any other currency is the USD price at today's rate, with the USD
+ * 24h change (the day's exchange-rate move is left out). No rate, no price.
+ */
+function pick(quote: PriceQuote | undefined, currency: Currency, rates?: FxRates): { price: number | null; change: number | null } {
   if (!quote) return { price: null, change: null };
+  if (currency === 'usd') return { price: quote.usd, change: quote.usd_24h_change };
+  if (currency === 'php') return { price: quote.php, change: quote.php_24h_change };
 
-  return currency === 'usd'
-    ? { price: quote.usd, change: quote.usd_24h_change }
-    : { price: quote.php, change: quote.php_24h_change };
+  const rate = rates?.[currency];
+  if (!rate || quote.usd === null) return { price: null, change: null };
+  return { price: quote.usd * rate, change: quote.usd_24h_change };
+}
+
+/** True when `currency` needs exchange rates (it isn't in the price quotes). */
+export function needsRate(currency: Currency): boolean {
+  return currency !== 'usd' && currency !== 'php';
 }
 
 // String() keeps tiny prices exact-ish ("1.2e-8" parses fine in Decimal).
@@ -77,8 +92,8 @@ export function change24hOf(value: Decimal, changePct: number): Decimal {
   return value.minus(value.div(factor));
 }
 
-export function holdingRow(holding: Holding, quote: PriceQuote | undefined, currency: Currency): HoldingRow {
-  const { price, change } = pick(quote, currency);
+export function holdingRow(holding: Holding, quote: PriceQuote | undefined, currency: Currency, rates?: FxRates): HoldingRow {
+  const { price, change } = pick(quote, currency, rates);
   const priceDec = price === null ? null : toDec(price);
   const value = priceDec === null ? null : priceDec.times(holding.amount);
 
@@ -134,13 +149,13 @@ export function sortHoldings(rows: readonly HoldingRow[], sort: HoldingSort): Ho
   });
 }
 
-export function summarizeWallet(wallet: Wallet, prices: PriceMap, currency: Currency): WalletSummary {
+export function summarizeWallet(wallet: Wallet, prices: PriceMap, currency: Currency, rates?: FxRates): WalletSummary {
   let total = ZERO;
   let change24h = ZERO;
   let missingCount = 0;
 
   const rows = wallet.holdings.map((holding) => {
-    const row = holdingRow(holding, prices[holding.coinId], currency);
+    const row = holdingRow(holding, prices[holding.coinId], currency, rates);
 
     if (row.value === null) {
       missingCount++;
@@ -275,7 +290,9 @@ export function splitMatch(name: string, query: string): [string, string, string
 // Formatting
 // ---------------------------------------------------------------------------
 
-const LOCALES: Record<Currency, string> = { usd: 'en-US', php: 'en-PH' };
+// PHP keeps its Philippine formatting; everything else uses en-US.
+const LOCALES: Partial<Record<Currency, string>> = { usd: 'en-US', php: 'en-PH' };
+const localeFor = (currency: Currency) => LOCALES[currency] ?? 'en-US';
 
 const formatters = new Map<string, Intl.NumberFormat>();
 
@@ -293,16 +310,18 @@ function formatter(key: string, make: () => Intl.NumberFormat): Intl.NumberForma
 type IntlInput = Parameters<Intl.NumberFormat['format']>[0];
 const asIntl = (value: Decimal) => value.toFixed() as unknown as IntlInput;
 
-/** A value or total: always 2 decimals. ₱1,234,567.89 / $1,234,567.89 */
+/** A value or total in the currency's own decimals: ₱1,234,567.89 / $1,234,567.89 / ¥185,185,180 */
 export function formatMoney(value: Decimal, currency: Currency): string {
+  const digits = currencyDigits(currency);
+
   return formatter(`money-${currency}`, () =>
-    new Intl.NumberFormat(LOCALES[currency], {
+    new Intl.NumberFormat(localeFor(currency), {
       style: 'currency',
       currency: currency.toUpperCase(),
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
     })
-  ).format(asIntl(value.toDecimalPlaces(2)));
+  ).format(asIntl(value.toDecimalPlaces(digits)));
 }
 
 /** A coin price: 2 decimals from 1 up, else up to 6 significant digits (₱0.0001234). */
@@ -310,7 +329,7 @@ export function formatPrice(price: Decimal, currency: Currency): string {
   if (price.abs().gte(1)) return formatMoney(price, currency);
 
   return formatter(`price-${currency}`, () =>
-    new Intl.NumberFormat(LOCALES[currency], {
+    new Intl.NumberFormat(localeFor(currency), {
       style: 'currency',
       currency: currency.toUpperCase(),
       maximumSignificantDigits: 6,

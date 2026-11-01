@@ -42,7 +42,8 @@ const valid = {
 describe('schema', () => {
   it('accepts valid data and rejects broken data', () => {
     expect(parseStoredState(valid).ok).toBe(true);
-    expect(parseStoredState({ ...valid, currency: 'eur' }).ok).toBe(false);
+    expect(parseStoredState({ ...valid, currency: 'eur' }).ok).toBe(true);
+    expect(parseStoredState({ ...valid, currency: 'EURO' }).ok).toBe(false);
     expect(parseStoredState({ ...valid, wallets: [valid.wallets[0], { ...valid.wallets[0], id: 'w2', name: 'binance' }] }).ok).toBe(false);
 
     const badAmount = structuredClone(valid);

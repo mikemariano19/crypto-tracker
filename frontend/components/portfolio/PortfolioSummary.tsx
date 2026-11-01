@@ -4,11 +4,18 @@ import type Decimal from "decimal.js";
 import { RefreshCw } from "lucide-react";
 import AllocationBar from "@/components/portfolio/AllocationBar";
 import ChangeText from "@/components/portfolio/ChangeText";
-import CurrencyToggle from "@/components/portfolio/CurrencyToggle";
+import CurrencyPicker from "@/components/coin/CurrencyPicker";
+import { useExchangeRates, type FiatCurrency } from "@/hooks/useExchangeRates";
 import { formatClock } from "@/components/portfolio/Notices";
 import { formatMoney, type AllocationSlice, type PortfolioTotals } from "@/lib/portfolio";
 import type { Currency } from "@/lib/wallet/schema";
 import { cn } from "@/lib/utils";
+
+// Offered when the rates API is down: both come with every price quote.
+const QUOTED_CURRENCIES: FiatCurrency[] = [
+  { code: "usd", name: "US Dollar", unit: "$", per_usd: 1 },
+  { code: "php", name: "Philippine Peso", unit: "₱", per_usd: 0 },
+];
 
 /**
  * Portfolio total in the chosen currency (≈ the other one beside it), 24h
@@ -47,6 +54,7 @@ export default function PortfolioSummary({
   announce: boolean;
 }) {
   const other: Currency = currency === "usd" ? "php" : "usd";
+  const { currencies } = useExchangeRates();
   const lead = shown ?? totals;
   const missing = totals.missingCoins.length;
 
@@ -80,7 +88,12 @@ export default function PortfolioSummary({
           )}
         </div>
 
-        <CurrencyToggle value={selectedCurrency} onChange={onCurrencyChange} />
+        <CurrencyPicker
+          currencies={currencies.length > 0 ? currencies : QUOTED_CURRENCIES}
+          value={selectedCurrency}
+          onChange={onCurrencyChange}
+          size="sm"
+        />
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">

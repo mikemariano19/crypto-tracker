@@ -12,14 +12,17 @@ import WalletCard from "@/components/portfolio/WalletCard";
 import WalletForm, { type WalletFormTarget } from "@/components/portfolio/WalletForm";
 import WalletToolbar from "@/components/portfolio/WalletToolbar";
 import { useCoinPrices } from "@/hooks/useCoinPrices";
+import { useExchangeRates } from "@/hooks/useExchangeRates";
 import { useWalletProviders } from "@/hooks/useWalletProviders";
 import { useWalletStore } from "@/hooks/useWalletStore";
 import {
   allocation,
   filterWallets,
+  needsRate,
   portfolioTotals,
   sortWallets,
   summarizeWallet,
+  type FxRates,
   type WalletSummary,
 } from "@/lib/portfolio";
 import { backupFileName, downloadText, serializeBackup } from "@/lib/wallet/backup";
@@ -34,18 +37,19 @@ const SEARCH_DEBOUNCE_MS = 150;
 // WeakMap keyed by them never serves an outdated wallet.
 const summaryCache = new WeakMap<Wallet, Partial<Record<Currency, { signature: string; summary: WalletSummary }>>>();
 
-function walletSummary(wallet: Wallet, prices: PriceMap, currency: Currency): WalletSummary {
-  const signature = wallet.holdings
+function walletSummary(wallet: Wallet, prices: PriceMap, currency: Currency, rates: FxRates): WalletSummary {
+  // Other currencies are priced from USD, so the rate is part of the key too.
+  const signature = `${needsRate(currency) ? rates[currency] ?? "-" : ""}#` + wallet.holdings
     .map((holding) => {
       const quote = prices[holding.coinId];
-      return quote ? `${quote[currency]}:${quote[`${currency}_24h_change`]}` : "-";
+      return quote ? `${quote.usd}:${quote.usd_24h_change}:${quote.php}:${quote.php_24h_change}` : "-";
     })
     .join("|");
 
   const cached = summaryCache.get(wallet)?.[currency];
   if (cached?.signature === signature) return cached.summary;
 
-  const summary = summarizeWallet(wallet, prices, currency);
+  const summary = summarizeWallet(wallet, prices, currency, rates);
   summaryCache.set(wallet, { ...summaryCache.get(wallet), [currency]: { signature, summary } });
   return summary;
 }
@@ -89,6 +93,11 @@ export default function PortfolioPage() {
     [state]
   );
   const prices = useCoinPrices(coinIds);
+  const { currencies } = useExchangeRates();
+  const rates = useMemo<FxRates>(
+    () => Object.fromEntries(currencies.map((entry) => [entry.code, entry.per_usd])),
+    [currencies]
+  );
   const { byId: providers } = useWalletProviders();
 
   const [announce, setAnnounce] = useState(false);
@@ -108,9 +117,9 @@ export default function PortfolioPage() {
   const derived = useMemo(() => {
     if (!state) return null;
 
-    const summaries = state.wallets.map((wallet) => walletSummary(wallet, prices.prices, currency));
+    const summaries = state.wallets.map((wallet) => walletSummary(wallet, prices.prices, currency, rates));
     const visible = filterWallets(sortWallets(summaries, state.walletSort), query);
-    const otherTotal = portfolioTotals(state.wallets.map((wallet) => walletSummary(wallet, prices.prices, otherCurrency))).total;
+    const otherTotal = portfolioTotals(state.wallets.map((wallet) => walletSummary(wallet, prices.prices, otherCurrency, rates))).total;
 
     return {
       visible,
@@ -119,7 +128,7 @@ export default function PortfolioPage() {
       otherTotal,
       slices: allocation(summaries),
     };
-  }, [state, prices.prices, currency, otherCurrency, query]);
+  }, [state, prices.prices, currency, otherCurrency, query, rates]);
 
   // Dialogs hold ids; the objects are looked up fresh on every render.
   const [walletDialog, setWalletDialog] = useState<WalletDialog | null>(null);
@@ -177,7 +186,8 @@ export default function PortfolioPage() {
   const confirmHolding = confirm?.kind === "coin" ? confirmWallet?.holdings.find((h) => h.coinId === confirm.coinId) : undefined;
   const coinCount = confirmWallet?.holdings.length ?? 0;
 
-  const pricesLoading = prices.isLoading;
+  // A currency priced from USD shows skeletons, not "no price", until its rate arrives.
+  const pricesLoading = prices.isLoading || (needsRate(currency) && rates[currency] === undefined);
 
   return (
     // Visible keyboard focus on every plain button and select on the page.
