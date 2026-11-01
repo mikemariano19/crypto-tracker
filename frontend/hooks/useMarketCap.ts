@@ -21,7 +21,10 @@ export function useMarketCap() {
     });
 
     useEffect(() => {
-        const channel = getEcho().channel('market-stats');
+        const echo = getEcho();
+        if (!echo) return;
+
+        const channel = echo.channel('market-stats');
         channel.listen('.market-stats.updated', (event: { stats: MarketCap }) => {
             mutate(event.stats, false); // update cache without refetch
         });

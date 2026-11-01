@@ -26,7 +26,10 @@ export default function useGlobalStats() {
     });
 
     useEffect(() => {
-        const channel = getEcho().channel('global-stats');
+        const echo = getEcho();
+        if (!echo) return;
+
+        const channel = echo.channel('global-stats');
         channel.listen('.global-stats.updated', (event: { stats: MarketCap }) => {
             mutate(event.stats, false); // update cache without refetch
         });

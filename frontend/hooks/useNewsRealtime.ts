@@ -13,7 +13,10 @@ export function useNewsRealtime() {
   const [newCount, setNewCount] = useState(0);
 
   useEffect(() => {
-    const channel = getEcho().channel('news');
+    const echo = getEcho();
+    if (!echo) return;
+
+    const channel = echo.channel('news');
 
     channel.listen('.news.batch.published', (event: NewsBatchPublishedEvent) => {
       mutate(GLOBAL_SENTIMENT_KEY);
