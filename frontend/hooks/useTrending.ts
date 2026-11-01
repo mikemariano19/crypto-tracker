@@ -22,7 +22,10 @@ export function useTrendingCoins() {
   );
 
   useEffect(() => {
-    const channel = getEcho().channel('trending-coins');
+    const echo = getEcho();
+    if (!echo) return;
+
+    const channel = echo.channel('trending-coins');
 
     channel.listen(
       '.trending-coins.updated',

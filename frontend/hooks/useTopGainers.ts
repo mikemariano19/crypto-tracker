@@ -23,7 +23,10 @@ export function useTopGainers() {
   );
 
   useEffect(() => {
-    const channel = getEcho().channel('top-gainers');
+    const echo = getEcho();
+    if (!echo) return;
+
+    const channel = echo.channel('top-gainers');
 
     channel.listen(
       '.top-gainers.updated',

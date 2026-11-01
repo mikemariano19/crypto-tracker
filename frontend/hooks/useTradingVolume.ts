@@ -18,7 +18,10 @@ export function useTradingVolume() {
     });
 
     useEffect(() => {
-        const channel = getEcho().channel('trading-volume');
+        const echo = getEcho();
+        if (!echo) return;
+
+        const channel = echo.channel('trading-volume');
         channel.listen('.trading-volume.updated', (event: { stats: TradingVolume }) => {
             mutate(event.stats, false); // update cache without refetch
         });

@@ -67,13 +67,16 @@ export function useCryptoPrices(page = 1) {
         // Live pushes only carry the top coins.
         if (page !== 1) return;
 
-        const channel = getEcho().channel('crypto-prices');
+        const echo = getEcho();
+        if (!echo) return;
+
+        const channel = echo.channel('crypto-prices');
 
         channel.listen('.prices.updated', (event: { prices: CryptoPrice[] }) => {
             mutate(event.prices, false); // update cache without refetch
         });
 
-        return () => getEcho().leaveChannel('crypto-prices');
+        return () => echo.leaveChannel('crypto-prices');
     }, [mutate, page]);
 
 
