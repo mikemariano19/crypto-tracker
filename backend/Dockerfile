@@ -1,6 +1,7 @@
 # Single container for free hosting (Render): web server, queue worker and
 # scheduler all run here, started by start.sh.
-FROM php:8.3-cli
+# Match the PHP that composer.lock was resolved with (Symfony 8 needs 8.4+).
+FROM php:8.4-cli
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends libpq-dev libzip-dev unzip git \
