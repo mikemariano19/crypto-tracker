@@ -6,7 +6,7 @@ Crypto market tracker: a **Next.js 16** frontend (`frontend/`) over a **Laravel 
 
 ## Commands
 
-Backend (run in `backend/`, PHP 8.3+):
+Backend (run in `backend/`, PHP 8.4+ — `composer.lock` pins Symfony 8 even though `composer.json` says `^8.3`):
 - `composer setup` — install, copy `.env`, generate key, migrate (SQLite by default)
 - `composer dev` — runs `artisan serve` (:8000), `queue:listen`, `pail` logs, Vite and `schedule:work` together
 - `composer test` / `php artisan test` — PHPUnit; single test: `php artisan test --filter=NewsPipelineTest`
