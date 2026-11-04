@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { RefreshCw, RotateCw } from "lucide-react";
+import { useSWRConfig } from "swr";
 
 import GlobalSentimentHeader from "@/components/news/GlobalSentimentHeader";
 import NewsFilterBar, { COIN_FILTERS } from "@/components/news/NewsFilterBar";
@@ -19,7 +20,7 @@ import SentimentBadge from "@/components/news/SentimentBadge";
 import SentimentSplitBar from "@/components/news/SentimentSplitBar";
 import { useGlobalSentiment } from "@/hooks/useGlobalSentiment";
 import { useNewsFeed } from "@/hooks/useNewsFeed";
-import { useSentimentTrend } from "@/hooks/useSentimentTrend";
+import { sentimentTrendKey, useSentimentTrend } from "@/hooks/useSentimentTrend";
 import { useNewsRealtime } from "@/hooks/useNewsRealtime";
 import { useNow } from "@/hooks/useNow";
 import { formatClockTime, formatSignedPct } from "@/lib/formatNews";
@@ -91,6 +92,7 @@ export default function NewsPage() {
   const filters = parseFilters(new URLSearchParams(searchParams.toString()));
   const hasFilters = filtersToSearch({ ...filters, range: DEFAULT_FILTERS.range, sort: DEFAULT_FILTERS.sort }) !== "";
 
+  const { mutate } = useSWRConfig();
   const now = useNow();
   const global = useGlobalSentiment();
   const trend = useSentimentTrend(7);
@@ -115,6 +117,21 @@ export default function NewsPage() {
     observer.observe(element);
     return () => observer.disconnect();
   }, [hasSnapshot]);
+
+  // When a fetch this page was waiting on ends, the stories already show, so a
+  // "new stories" pill would be wrong, and the header and trend are out of date.
+  const wasFetching = useRef(false);
+  const refreshGlobal = global.retry;
+
+  useEffect(() => {
+    if (wasFetching.current && !feed.isFetching) {
+      clearNewCount();
+      refreshGlobal();
+      mutate(sentimentTrendKey(7));
+    }
+
+    wasFetching.current = feed.isFetching;
+  }, [feed.isFetching, clearNewCount, refreshGlobal, mutate]);
 
   const setFilters = (changes: Partial<NewsFilters>) => {
     router.replace(`/news${filtersToSearch({ ...filters, ...changes })}`, { scroll: false });
@@ -149,6 +166,16 @@ export default function NewsPage() {
         actionLabel="Retry now"
         onAction={() => feed.reload()}
       />
+    );
+  } else if (feed.isFetching) {
+    feedBody = (
+      <div className="flex flex-col gap-3">
+        <p role="status" className="flex items-center justify-center gap-2 rounded-xl border bg-white px-4 py-3 text-xs font-medium text-muted-foreground">
+          <RefreshCw className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+          Fetching the latest news. This can take a minute.
+        </p>
+        <NewsSkeleton withHeader={false} />
+      </div>
     );
   } else if (feed.stories.length === 0 && hasFilters) {
     feedBody = (

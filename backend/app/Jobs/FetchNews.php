@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Support\News\NewsPipeline;
+use App\Support\News\NewsRefresh;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -34,6 +35,10 @@ class FetchNews implements ShouldQueue, ShouldBeUnique
 
     public function handle(NewsPipeline $pipeline): void
     {
-        $pipeline->run();
+        try {
+            $pipeline->run();
+        } finally {
+            NewsRefresh::finished();
+        }
     }
 }

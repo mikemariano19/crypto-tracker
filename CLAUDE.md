@@ -13,6 +13,7 @@ Backend (run in `backend/`, PHP 8.4+ — `composer.lock` pins Symfony 8 even tho
 - `vendor/bin/pint` — PHP formatter
 - `php artisan market:warm` — refresh CoinGecko caches before they expire (scheduled every minute)
 - `php artisan news:fetch [--sync]` — run the news pipeline (queued unless `--sync`)
+- `php artisan news:analyze` — run AI sentiment now on recent stories that have none (spends credits)
 - `php artisan news:demo [--clear]` — fill stories with labelled sample sentiment (local env only)
 - `php artisan wallets:icons` — download wallet provider icons (scheduled daily)
 - `php artisan reverb:start` — WebSocket server on :8080 for realtime events (not started by `composer dev`)
@@ -40,9 +41,9 @@ CoinGecko's free tier is tightly rate-limited, so nothing calls it directly from
 When adding a CoinGecko-backed endpoint: add a fetcher to `MarketData::endpoints()` (or use `StaleCache::respond` with its own key), route it through `CoinGecko::get()`, and return the envelope via StaleCache.
 
 ### Backend: news pipeline
-`App\Support\News\NewsPipeline::run()` (via the `FetchNews` job, scheduled per `NewsSchedule::cron()`): fetch from sources in `config/news_sources.php` (RSS + CryptoCompare) → dedupe → cluster by title similarity (`TitleSimilarity`) → score with rule-based `RelevanceScorer` (`config/news_keywords.php`) → mark the top clusters `analysis_status = pending`. Models: `NewsBatch`, `NewsArticle`, `NewsCluster`, `NewsSentimentSnapshot`. A finished batch broadcasts `NewsBatchPublished` on the `news` channel. One failing source never fails the batch.
+`App\Support\News\NewsPipeline::run()` (via the `FetchNews` job, scheduled per `NewsSchedule::cron()`): fetch from sources in `config/news_sources.php` (RSS + CryptoCompare) → dedupe → cluster by title similarity (`TitleSimilarity`) → score with rule-based `RelevanceScorer` (`config/news_keywords.php`) → mark the top clusters `analysis_status = pending` → analyze them with `NewsAnalyzer`. Models: `NewsBatch`, `NewsArticle`, `NewsCluster`, `NewsSentimentSnapshot`. A finished batch broadcasts `NewsBatchPublished` on the `news` channel. One failing source never fails the batch.
 
-Tuning lives in `config/news.php` (env-driven). The `ai` block (model, token budget) is configuration for sentiment analysis; there is no AI caller in the codebase yet — clusters are only marked pending, and `news:demo` fakes the analysis for UI work.
+Tuning lives in `config/news.php` (env-driven). `ClaudeNewsClient` is the only Claude API caller (official SDK, structured output); `NewsAnalyzer` validates and stores the results and enforces `daily_ai_token_budget`. Without `AI_PROVIDER_API_KEY` the step is skipped and stories stay pending. API errors leave stories pending for the next run; a refused or cut-off answer is split and retried, and a story that still fails is marked `failed`. The AI never supplies URLs, sources or the label (computed from its percentages). `news:demo` fakes the analysis for UI work. When a visitor finds the feed empty, `NewsRefresh` queues one `FetchNews` (10-minute cooldown), the response says `fetching: true`, and `useNewsFeed` polls until the stories arrive; this needs a queue worker running. Tests fake the HTTP layer by passing a PSR-18 client to `ClaudeNewsClient`.
 
 ### Realtime
 Laravel Reverb + `laravel-echo`/`pusher-js`. `frontend/lib/echo.ts` reads `NEXT_PUBLIC_REVERB_APP_KEY/HOST/PORT/SCHEME`; in dev it defaults to `ws://127.0.0.1:8080` with key `local`. With no key in a production build, `getEcho()` returns `null` and hooks must skip subscribing. Hooks subscribe to channels (`news`, `crypto-prices`, `top-gainers`, `trending-coins`, `market-stats`, …), but only `news` currently has a backend broadcaster in use; `.env.example` sets `BROADCAST_CONNECTION=log`. `FetchCryptoPrices` / `CryptoPricesUpdated` exist but aren't scheduled or dispatched anywhere. Data hooks fall back to SWR polling.
@@ -61,7 +62,7 @@ Laravel Reverb + `laravel-echo`/`pusher-js`. `frontend/lib/echo.ts` reads `NEXT_
 - Wrap every `localStorage` access in try/catch; storage may be missing (SSR), blocked or full.
 - Backend tests run with an in-memory SQLite DB, `array` cache and `sync` queue (`phpunit.xml`); fake HTTP with `Http::fake()` rather than calling CoinGecko.
 - Comments explain *why* (rate limits, hydration order, edge cases) in short plain sentences — keep that style.
-- Backend env: `FRONTEND_URLS` (CORS allowlist, comma-separated), `COINGECKO_API_KEY`, `NEWS_*`. Frontend env: `API_BACKEND_URL`, `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_REVERB_*`.
+- Backend env: `FRONTEND_URLS` (CORS allowlist, comma-separated), `COINGECKO_API_KEY`, `NEWS_*`, `AI_*`. Frontend env: `API_BACKEND_URL`, `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_REVERB_*`.
 
 ## Deployment
 Frontend on Vercel (root `frontend/`). Backend as one Docker container (`backend/Dockerfile`, e.g. Render free tier): `start.sh` migrates, caches config, runs `queue:work` and `schedule:work` in background loops, then `artisan serve` on `$PORT`. The container filesystem is ephemeral, so production uses Postgres (`DB_URL`, Supabase session pooler) with `CACHE_STORE=database`, not SQLite.

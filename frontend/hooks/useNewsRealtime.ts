@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSWRConfig } from 'swr';
 import { getEcho } from '@/lib/echo';
 import { GLOBAL_SENTIMENT_KEY } from '@/hooks/useGlobalSentiment';
@@ -32,8 +32,7 @@ export function useNewsRealtime() {
     };
   }, [mutate]);
 
-  return {
-    newCount,
-    clearNewCount: () => setNewCount(0),
-  };
+  const clearNewCount = useCallback(() => setNewCount(0), []);
+
+  return { newCount, clearNewCount };
 }
