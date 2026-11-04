@@ -30,7 +30,10 @@ return [
 
     'ai' => [
         'model' => env('AI_MODEL', 'claude-haiku-5-5'),
-        'max_output_tokens' => (int) env('AI_MAX_OUTPUT_TOKENS', 2_500),
+        // Thinking counts toward this too, and a run covers up to 10 stories.
+        'max_output_tokens' => (int) env('AI_MAX_OUTPUT_TOKENS', 6_000),
+        // Rating short headlines doesn't repay deep thinking, which costs tokens.
+        'effort' => env('AI_EFFORT', 'low'),
         'api_key' => env('AI_PROVIDER_API_KEY'),
     ],
 

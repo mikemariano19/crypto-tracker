@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import useSWR from 'swr';
 import { apiUrl, fetchApi } from '@/lib/api';
 import type { GlobalSentimentSnapshot } from '@/types/news';
@@ -19,11 +20,13 @@ export function useGlobalSentiment() {
     },
   );
 
+  const retry = useCallback(() => mutate(), [mutate]);
+
   return {
     snapshot: data ?? null,
     isLoading,
     isValidating,
     isError: !!error,
-    retry: () => mutate(),
+    retry,
   };
 }

@@ -15,8 +15,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
- * One news run: fetch → dedupe → cluster → score relevance → pick the top
- * new stories for AI analysis. Everything here is free (no AI calls).
+ * One news run: fetch → dedupe → cluster → score relevance → analyze the top
+ * new stories with AI. Only the last step costs money (see NewsAnalyzer).
  */
 class NewsPipeline
 {
@@ -26,7 +26,7 @@ class NewsPipeline
     // Overlap with the previous run, for feeds that publish late.
     private const OVERLAP_MINUTES = 60;
 
-    public function __construct(private RelevanceScorer $scorer) {}
+    public function __construct(private RelevanceScorer $scorer, private NewsAnalyzer $analyzer) {}
 
     /**
      * @param  NewsSource[]|null  $sources  defaults to the enabled config sources
@@ -91,9 +91,15 @@ class NewsPipeline
             'errors' => $errors ?: null,
         ]);
 
+        // After the batch is saved, so a failed AI call can't lose the news.
+        $aiSummary = $this->analyzer->analyzePending($batch);
+
+        $batch->update(['duration_ms' => (int) ((microtime(true) - $timer) * 1000)]);
+
         Log::info('News batch finished', $batch->only([
             'id', 'articles_fetched', 'articles_new', 'clusters_created', 'clusters_kept',
-            'clusters_selected', 'ai_input_tokens', 'ai_output_tokens', 'duration_ms', 'errors',
+            'clusters_selected', 'clusters_analyzed', 'ai_requests', 'ai_input_tokens', 'ai_output_tokens',
+            'duration_ms', 'errors',
         ]));
 
         // Outlet icons for new hosts (cached; lookups that fail just retry later).
@@ -103,7 +109,7 @@ class NewsPipeline
         NewsImages::backfill();
 
         // Without analyzed stories this keeps the previous snapshot.
-        NewsSentiment::snapshot($batch);
+        NewsSentiment::snapshot($batch, $aiSummary);
 
         NewsFeed::bumpVersion();
 
@@ -296,7 +302,7 @@ class NewsPipeline
                 'latest_published_at' => $articles->max('published_at'),
             ];
 
-            // Once analyzed, assets, tags and impact come from the AI.
+            // Once analyzed, assets and impact come from the AI, and tags stay put.
             if ($cluster->analysis_status !== NewsCluster::STATUS_ANALYZED) {
                 $otherAssets = $articles->flatMap(fn (NewsArticle $article) => $this->scorer->assets($article->title));
                 $impact = self::impactFromRelevance($scored['score']);

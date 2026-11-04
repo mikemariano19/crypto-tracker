@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Support\News\NewsFeed;
+use App\Support\News\NewsRefresh;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -28,7 +29,12 @@ class NewsController extends Controller
         $filters = $validator->validated();
         $filters['asset'] = isset($filters['asset']) ? strtoupper($filters['asset']) : null;
 
-        return $this->respond(NewsFeed::cached('stories', $filters, fn () => NewsFeed::stories($filters)));
+        $page = NewsFeed::cached('stories', $filters, fn () => NewsFeed::stories($filters));
+
+        // Outside the cache: this changes while the cached page stays the same.
+        $page['fetching'] = $page['items'] === [] && NewsRefresh::startIfEmpty();
+
+        return $this->respond($page, cacheable: $page['items'] !== []);
     }
 
     public function show(string $clusterId)
@@ -45,19 +51,31 @@ class NewsController extends Controller
     public function global()
     {
         // Short TTL: the market numbers in here move between batches.
-        return $this->respond(NewsFeed::cached('global', [], fn () => NewsFeed::global(), 60));
+        $snapshot = NewsFeed::cached('global', [], fn () => NewsFeed::global(), 60);
+
+        return $this->respond($snapshot, cacheable: $snapshot['sentiment'] !== null && !NewsRefresh::isFetching());
     }
 
     public function trend(Request $request)
     {
         $days = max(1, min(30, (int) $request->query('days', 7)));
 
-        return $this->respond(NewsFeed::cached('trend', [$days], fn () => NewsFeed::trend($days)));
+        $trend = NewsFeed::cached('trend', [$days], fn () => NewsFeed::trend($days));
+
+        return $this->respond($trend, cacheable: $trend !== [] && !NewsRefresh::isFetching());
     }
 
-    private function respond(array $data): JsonResponse
+    private function respond(array $data, bool $cacheable = true): JsonResponse
     {
         $response = response()->json(['success' => true, 'data' => $data]);
+
+        // Empty answers can't be kept: the browser would serve its copy while
+        // the page checks whether the first news has arrived.
+        if (!$cacheable) {
+            $response->headers->set('Cache-Control', 'no-store');
+
+            return $response;
+        }
 
         // An unchanged feed answers If-None-Match with an empty 304.
         $response->setEtag(md5(NewsFeed::version() . request()->fullUrl() . json_encode($data)));

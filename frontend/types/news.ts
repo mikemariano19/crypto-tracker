@@ -80,6 +80,8 @@ export interface SentimentTrendPoint extends SentimentSplit {
 export interface NewsPage {
   items: NewsStory[];
   nextCursor: string | null;
+  // The feed was empty, so the server started a news fetch.
+  fetching: boolean;
 }
 
 export type NewsRange = '6h' | '24h' | '3d';
