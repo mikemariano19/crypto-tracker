@@ -3,12 +3,13 @@ import ExternalLink from "@/components/ExternalLink";
 import { about } from "@/content/about";
 
 // On every page: CoinGecko's attribution guide asks for visible, linked
-// credit wherever its data is shown, and the market pages all show it.
+// credit wherever its data is shown, and the market pages all show it. The
+// bottom padding keeps that credit clear of BottomNav, which shows at page end.
 export default function SiteFooter() {
   const year = about.app.lastUpdated.slice(0, 4);
 
   return (
-    <footer className="mt-auto border-t bg-white">
+    <footer className="mt-auto border-t bg-white pb-[calc(3.5rem+env(safe-area-inset-bottom))] lg:pb-0">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-2 px-3 py-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-4">
         <ExternalLink href={about.attribution.url} className="font-medium text-foreground hover:underline">
           {about.attribution.text}
