@@ -497,6 +497,11 @@ export default function InsightChart({ series, range, money, isUp, label, insigh
     return () => {
       stopFade();
 
+      // On unmount the chart's own cleanup runs first and removes everything
+      // with it. Touching its series after that throws, and Next would show
+      // its error page instead of the page being opened.
+      if (chartRef.current !== chart) return;
+
       markers?.detach();
       if (zones) main.detachPrimitive(zones);
       emaSeries.forEach(({ line }) => chart.removeSeries(line));
