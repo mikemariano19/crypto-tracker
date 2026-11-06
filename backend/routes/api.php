@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CryptoPriceController;
+use App\Http\Controllers\InsightController;
 use App\Http\Controllers\MarketController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\TopGainerController;
@@ -23,6 +24,12 @@ Route::get('/coin/{id}', [CryptoPriceController::class, 'coin']);
 Route::get('/coin/{id}/chart', [CryptoPriceController::class, 'chart']);
 Route::get('/coin/{id}/markets', [CryptoPriceController::class, 'markets']);
 Route::get('/top-gainers', [TopGainerController::class, 'index']);
+
+// AI price insight: the plain candle chart, then the on-demand analysis. The
+// POST is the only route that can spend AI credits, hence its own limit.
+Route::get('/coins/{id}/chart', [InsightController::class, 'chart']);
+Route::get('/insight/{id}', [InsightController::class, 'show']);
+Route::post('/insight/{id}', [InsightController::class, 'run'])->middleware('throttle:insight');
 
 // Wallet tracker: prices for the coins in the user's (browser-only) wallets.
 Route::get('/prices', [CryptoPriceController::class, 'prices']);

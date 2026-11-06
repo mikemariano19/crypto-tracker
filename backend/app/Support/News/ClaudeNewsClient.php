@@ -2,24 +2,14 @@
 
 namespace App\Support\News;
 
-use Anthropic\Client;
-use GuzzleHttp\Client as Guzzle;
-use Psr\Http\Client\ClientInterface;
+use App\Support\ClaudeJsonClient;
 
 /**
- * The only caller of the Claude API: sends a list of stories and returns the
- * parsed analysis. What to do with it lives in NewsAnalyzer.
+ * Sends a list of stories to Claude and returns the parsed analysis. What to do
+ * with it lives in NewsAnalyzer.
  */
-class ClaudeNewsClient
+class ClaudeNewsClient extends ClaudeJsonClient
 {
-    public const STATUS_OK = 'ok';
-
-    // Claude declined, or the answer was cut off or unreadable. The analyzer
-    // retries these with fewer stories.
-    public const STATUS_UNUSABLE = 'unusable';
-
-    private const TIMEOUT_SECONDS = 120;
-
     private const SYSTEM_PROMPT = <<<'PROMPT'
     You analyze crypto news for traders. For each story, rate how the market is likely to read it in the next 24 hours.
 
@@ -42,70 +32,22 @@ class ClaudeNewsClient
     Describe and explain, never advise. Do not tell anyone to buy, sell, hold or enter a trade, do not give price targets, and do not predict that a price will move. If a story is a rumor or an opinion, say so.
     PROMPT;
 
-    public function __construct(private ?ClientInterface $transporter = null) {}
-
-    public function isConfigured(): bool
-    {
-        return filled(config('news.ai.api_key'));
-    }
-
     /**
+     * An unusable answer comes back as STATUS_UNUSABLE, which the analyzer
+     * retries with fewer stories.
+     *
      * @param  array<int, array<string, mixed>>  $stories
      * @return array{status: string, data: ?array, input_tokens: int, output_tokens: int, reason: ?string}
      */
     public function analyze(array $stories): array
     {
-        $client = new Client(
-            apiKey: (string) config('news.ai.api_key'),
-            requestOptions: [
-                // The SDK retries rate limits and server errors; this keeps a
-                // stuck connection from holding the queue worker.
-                'transporter' => $this->transporter ?? new Guzzle(['timeout' => self::TIMEOUT_SECONDS]),
-            ],
+        return $this->requestJson(
+            self::SYSTEM_PROMPT,
+            json_encode(['stories' => $stories], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE),
+            self::schema(),
+            (int) config('news.ai.max_output_tokens'),
+            (string) config('news.ai.effort'),
         );
-
-        $message = $client->messages->create(
-            model: (string) config('news.ai.model'),
-            // Thinking counts toward this cap, so it can't be sized to the answer alone.
-            maxTokens: (int) config('news.ai.max_output_tokens'),
-            system: self::SYSTEM_PROMPT,
-            messages: [[
-                'role' => 'user',
-                'content' => json_encode(['stories' => $stories], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE),
-            ]],
-            outputConfig: [
-                'effort' => (string) config('news.ai.effort'),
-                'format' => ['type' => 'json_schema', 'schema' => self::schema()],
-            ],
-        );
-
-        // Usage is billed even when the answer can't be used.
-        $usage = $message->usage;
-        $result = [
-            'status' => self::STATUS_UNUSABLE,
-            'data' => null,
-            'input_tokens' => (int) $usage->inputTokens + (int) $usage->cacheCreationInputTokens + (int) $usage->cacheReadInputTokens,
-            'output_tokens' => (int) $usage->outputTokens,
-            'reason' => null,
-        ];
-
-        // Check first: a refused or cut-off answer has no complete JSON to read.
-        if ($message->stopReason !== 'end_turn') {
-            return [...$result, 'reason' => 'stop_reason: ' . $message->stopReason];
-        }
-
-        // Thinking blocks can come first, so find the answer by type.
-        foreach ($message->content as $block) {
-            if ($block->type === 'text') {
-                $data = json_decode($block->text, true);
-
-                return is_array($data)
-                    ? [...$result, 'status' => self::STATUS_OK, 'data' => $data]
-                    : [...$result, 'reason' => 'response was not JSON'];
-            }
-        }
-
-        return [...$result, 'reason' => 'no text in response'];
     }
 
     private static function schema(): array

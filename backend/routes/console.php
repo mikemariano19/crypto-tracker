@@ -2,6 +2,7 @@
 
 use App\Jobs\FetchNews;
 use App\Models\NewsBatch;
+use App\Services\Insight\OutlookAccuracy;
 use App\Support\MarketData;
 use App\Support\News\NewsAnalyzer;
 use App\Support\News\NewsDemo;
@@ -97,6 +98,14 @@ Artisan::command('news:demo {--clear : Remove all demo analysis}', function () {
 })->purpose('Fill stories with labelled sample sentiment to preview the UI (local only)');
 
 Schedule::job(new FetchNews)->cron(NewsSchedule::cron())->withoutOverlapping();
+
+Artisan::command('insight:resolve', function () {
+    $counts = OutlookAccuracy::resolveDue();
+
+    $this->info("Outlooks scored: {$counts['resolved']}, closed as too late: {$counts['skipped']}, waiting for a fresh price: {$counts['waiting']}");
+})->purpose('Score AI price outlooks whose window has passed (no AI cost)');
+
+Schedule::command('insight:resolve')->hourly()->withoutOverlapping();
 
 Artisan::command('wallets:icons', function () {
     $result = WalletProviders::warmIcons();
