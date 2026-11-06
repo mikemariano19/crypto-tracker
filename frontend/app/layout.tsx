@@ -1,7 +1,8 @@
 
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter as FontSans } from "next/font/google";
 import "./globals.css";
+import BottomNav from "@/components/coin/BottomNav";
 import GlobalStats from "@/components/coin/GlobalStats";
 import NavBar from "@/components/coin/NavBar";
 import PageContent from "@/app/@header/coin/PageContent"
@@ -22,6 +23,12 @@ export const metadata: Metadata = {
   description: "Cryptocurrency market tracker",
 };
 
+// Lets BottomNav read the home-indicator inset. The page then runs under the
+// notch in landscape, so body pads the sides by the same insets.
+export const viewport: Viewport = {
+  viewportFit: "cover",
+};
+
 export default function RootLayout({
   children,
   profile,
@@ -35,7 +42,7 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
-      <body className="min-h-dvh w-full flex flex-col bg-gray-50">
+      <body className="min-h-dvh w-full flex flex-col bg-gray-50 pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
         <Providers>
           {/* Header bars span the full viewport; their contents and the
               page share one centered column with the same side gutter. */}
@@ -49,6 +56,7 @@ export default function RootLayout({
           </main>
 
           <SiteFooter />
+          <BottomNav />
         </Providers>
       </body>
     </html>

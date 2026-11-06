@@ -292,7 +292,7 @@ export default function NewsPage() {
 
       {/* Keep showing the last good data; just offer a retry */}
       {refreshFailed && (
-        <div role="alert" className="fixed bottom-4 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 rounded-full bg-gray-900 py-2 pl-4 pr-2 text-xs text-white shadow-lg">
+        <div role="alert" className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-1/2 z-40 flex lg:bottom-4 -translate-x-1/2 items-center gap-3 rounded-full bg-gray-900 py-2 pl-4 pr-2 text-xs text-white shadow-lg">
           Couldn&apos;t refresh news
           <button
             type="button"
