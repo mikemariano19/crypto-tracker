@@ -55,6 +55,8 @@ export function createPersistentCache() {
         key.startsWith('$') ||
         key.includes('/chart') ||
         key.includes('/api/search') ||
+        // Analyses have their own expiry, and the server holds the shared copy.
+        key.includes('/api/insight') ||
         // Wallet prices keep their own fallback copy (useCoinPrices).
         key.includes('/api/prices') ||
         state?.data === undefined

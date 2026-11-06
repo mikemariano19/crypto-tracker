@@ -4,8 +4,8 @@ return [
 
     'paths' => ['api/*'],
 
-    // The API is read-only.
-    'allowed_methods' => ['GET', 'HEAD', 'OPTIONS'],
+    // Read-only, apart from POST /api/insight/{id} starting an analysis.
+    'allowed_methods' => ['GET', 'HEAD', 'POST', 'OPTIONS'],
 
     // Comma-separated list, e.g. FRONTEND_URLS=https://app.example.com
     'allowed_origins' => array_filter(array_map('trim', explode(

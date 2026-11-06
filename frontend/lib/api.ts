@@ -8,7 +8,21 @@ type ApiEnvelope<T> = {
   stale?: boolean;
   cached_at?: string;
   error?: string;
+  retryAfter?: number;
 };
+
+/** A failed API call, with what callers need to react to it differently. */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    /** Seconds until a rate-limited request can be tried again. */
+    readonly retryAfter: number | null = null,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
 
 export function apiUrl(path: string): string {
   return `${API_URL}${path}`;
@@ -34,9 +48,22 @@ export type ApiResult<T> = {
  * fetchApi, plus the envelope's freshness info for screens that show it.
  */
 export async function fetchApiWithMeta<T>(url: string): Promise<ApiResult<T>> {
+  return request<T>(url, {}, REQUEST_TIMEOUT_MS);
+}
+
+/**
+ * For the few requests that start work on the server. These can take a while:
+ * a free Render instance sleeps when idle and needs up to a minute to wake.
+ */
+export async function postApi<T>(url: string, timeoutMs: number): Promise<T> {
+  return (await request<T>(url, { method: 'POST' }, timeoutMs)).data;
+}
+
+async function request<T>(url: string, init: RequestInit, timeoutMs: number): Promise<ApiResult<T>> {
   const res = await fetch(url, {
+    ...init,
     headers: { Accept: 'application/json' },
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    signal: AbortSignal.timeout(timeoutMs),
   });
 
   let json: ApiEnvelope<T>;
@@ -44,11 +71,11 @@ export async function fetchApiWithMeta<T>(url: string): Promise<ApiResult<T>> {
   try {
     json = await res.json();
   } catch {
-    throw new Error(`Unexpected response from API (${res.status})`);
+    throw new ApiError(`Unexpected response from API (${res.status})`, res.status);
   }
 
   if (!res.ok || !json.success || json.data === undefined) {
-    throw new Error(json.error ?? `API request failed (${res.status})`);
+    throw new ApiError(json.error ?? `API request failed (${res.status})`, res.status, json.retryAfter ?? null);
   }
 
   return { data: json.data, stale: json.stale ?? false, cachedAt: json.cached_at ?? null };

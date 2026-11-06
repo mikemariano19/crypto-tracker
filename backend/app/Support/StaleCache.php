@@ -164,16 +164,7 @@ class StaleCache
         $cooldownKey = "swr:{$key}:cooldown";
 
         try {
-            $entry = [
-                'data' => $fetch(),
-                'cached_at' => now()->toISOString(),
-                'fetched_at' => now()->getTimestamp(),
-            ];
-
-            Cache::put("swr:{$key}", $entry, now()->addDays(self::KEEP_FOR_DAYS));
-            Cache::forget($cooldownKey);
-
-            return $entry;
+            return self::put($key, $fetch());
         } catch (RequestException $e) {
             if ($e->response->status() === 404) {
                 throw $e;
@@ -187,6 +178,24 @@ class StaleCache
         }
 
         return null;
+    }
+
+    /**
+     * Stores freshly fetched data, for code that fetched it alongside another
+     * key and wants to save that key a second upstream call.
+     */
+    public static function put(string $key, array $data): array
+    {
+        $entry = [
+            'data' => $data,
+            'cached_at' => now()->toISOString(),
+            'fetched_at' => now()->getTimestamp(),
+        ];
+
+        Cache::put("swr:{$key}", $entry, now()->addDays(self::KEEP_FOR_DAYS));
+        Cache::forget("swr:{$key}:cooldown");
+
+        return $entry;
     }
 
     private static function isFresh(mixed $entry, int $freshSeconds): bool

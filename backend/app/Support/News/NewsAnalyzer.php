@@ -5,6 +5,7 @@ namespace App\Support\News;
 use App\Models\NewsArticle;
 use App\Models\NewsBatch;
 use App\Models\NewsCluster;
+use App\Services\Insight\InsightBudget;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -258,7 +259,7 @@ class NewsAnalyzer
             ->selectRaw('COALESCE(SUM(ai_input_tokens + ai_output_tokens), 0) as total')
             ->value('total');
 
-        return (int) $used + (int) config('news.ai.max_output_tokens') <= (int) config('news.daily_ai_token_budget');
+        return (int) $used + InsightBudget::sharedWithNews() + (int) config('news.ai.max_output_tokens') <= (int) config('news.daily_ai_token_budget');
     }
 
     private static function cutoff(): CarbonImmutable
