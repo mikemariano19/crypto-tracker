@@ -20,8 +20,10 @@ abstract class ClaudeJsonClient
 
     protected const TIMEOUT_SECONDS = 120;
 
-    // Null keeps the SDK's default of 2 retries.
-    protected const ?int MAX_RETRIES = null;
+    // Null keeps the SDK's default of 2 retries. Left untyped: some editors'
+    // PHP checkers can't parse typed constants yet and flag the whole class.
+    /** @var int|null */
+    protected const MAX_RETRIES = null;
 
     public function __construct(private ?ClientInterface $transporter = null) {}
 
