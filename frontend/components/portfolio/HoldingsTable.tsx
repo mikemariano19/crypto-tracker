@@ -2,6 +2,8 @@
 
 import { DropdownMenu } from "radix-ui";
 import { ArrowDown, ArrowUp, ChevronsUpDown, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import AlertButton from "@/components/alerts/AlertButton";
+import type { AlertCoin } from "@/components/alerts/PriceAlertDialog";
 import ChangeText from "@/components/portfolio/ChangeText";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { amountIsShortened, formatAmount, formatMoney, formatPrice, type HoldingRow } from "@/lib/portfolio";
@@ -101,6 +103,17 @@ function SortHeader({ by, sort, onSort, align = "right" }: { by: SortKey; sort: 
   );
 }
 
+/** A holding as the price-alert bell needs it; the price is in the wallet's currency. */
+function alertCoin(row: HoldingRow, currency: Currency): AlertCoin {
+  return {
+    id: row.coinId,
+    name: row.name,
+    symbol: row.symbol,
+    price: row.price === null ? null : row.price.toNumber(),
+    priceCurrency: currency.toLowerCase(),
+  };
+}
+
 function DesktopTable({ rows, currency, sort, pricesLoading, onSort, onEdit, onRemove }: Props) {
   return (
     <div className="overflow-x-auto">
@@ -152,6 +165,7 @@ function DesktopTable({ rows, currency, sort, pricesLoading, onSort, onEdit, onR
               </td>
               <td className="px-3 py-2.5">
                 <span className="flex justify-end gap-0.5">
+                  <AlertButton coin={alertCoin(row, currency)} size="sm" className="h-7 w-7" />
                   <button
                     type="button"
                     onClick={() => onEdit(row.coinId)}
@@ -200,6 +214,8 @@ function MobileList({ rows, currency, pricesLoading, onEdit, onRemove }: Props) 
               {row.change24hPct === null && pricesLoading ? <Skeleton className="w-10" /> : <ChangeText pct={row.change24hPct} className="shrink-0" />}
             </div>
           </div>
+
+          <AlertButton coin={alertCoin(row, currency)} size="sm" className="h-7 w-7" />
 
           <DropdownMenu.Root>
             <DropdownMenu.Trigger

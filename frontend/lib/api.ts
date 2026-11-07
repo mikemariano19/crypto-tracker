@@ -55,14 +55,18 @@ export async function fetchApiWithMeta<T>(url: string): Promise<ApiResult<T>> {
  * For the few requests that start work on the server. These can take a while:
  * a free Render instance sleeps when idle and needs up to a minute to wake.
  */
-export async function postApi<T>(url: string, timeoutMs: number): Promise<T> {
-  return (await request<T>(url, { method: 'POST' }, timeoutMs)).data;
+export async function postApi<T>(url: string, timeoutMs: number, body?: unknown): Promise<T> {
+  const init: RequestInit = body === undefined
+    ? { method: 'POST' }
+    : { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } };
+
+  return (await request<T>(url, init, timeoutMs)).data;
 }
 
 async function request<T>(url: string, init: RequestInit, timeoutMs: number): Promise<ApiResult<T>> {
   const res = await fetch(url, {
     ...init,
-    headers: { Accept: 'application/json' },
+    headers: { Accept: 'application/json', ...init.headers },
     signal: AbortSignal.timeout(timeoutMs),
   });
 

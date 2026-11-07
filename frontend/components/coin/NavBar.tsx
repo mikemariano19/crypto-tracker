@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Coins } from "lucide-react";
+import { Bell, Coins } from "lucide-react";
 import { isNavItemActive, navItems } from "@/components/coin/navItems";
 import ThemeToggle from "@/components/ThemeToggle";
 
@@ -100,6 +100,18 @@ export default function NavBar() {
 
         </div>
 
+
+        {/* Settings and the history of sent alerts, for anyone who missed one. */}
+        <Link
+          href="/alerts"
+          aria-label="Alerts"
+          title="Alerts"
+          className={`inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-gray-100 ${
+            pathname.startsWith("/alerts") ? "text-gray-900" : "text-gray-500"
+          }`}
+        >
+          <Bell className="h-4 w-4" aria-hidden="true" />
+        </Link>
 
         <ThemeToggle />
 
