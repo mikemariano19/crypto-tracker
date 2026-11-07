@@ -132,6 +132,8 @@ class PriceCache
             'stale' => $stale,
             'source' => $refreshed ? 'upstream' : ($stale ? 'stale-cache' : 'cache'),
             'oldest_fetched_at' => $fetchedAt ? min($fetchedAt) : null,
+            // Per coin, for callers that judge each price on its own age.
+            'fetched_at' => $fetchedAt,
             'missing' => $missing,
             'version' => json_encode($fetchedAt),
         ];

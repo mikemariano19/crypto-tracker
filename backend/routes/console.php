@@ -10,11 +10,13 @@ use App\Support\News\NewsFeed;
 use App\Support\News\NewsPipeline;
 use App\Support\News\NewsSchedule;
 use App\Support\News\NewsSentiment;
+use App\Support\Push\PushCheck;
 use App\Support\StaleCache;
 use App\Support\WalletProviders;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
+use Minishlink\WebPush\VAPID;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -113,3 +115,39 @@ Artisan::command('wallets:icons', function () {
 })->purpose('Download site icons for the curated wallet providers');
 
 Schedule::command('wallets:icons')->daily()->withoutOverlapping();
+
+Artisan::command('push:vapid', function () {
+    try {
+        $keys = VAPID::createVapidKeys();
+    } catch (\Throwable $e) {
+        // PHP on Windows can't make EC keys without an OpenSSL config file.
+        $this->error('Could not create keys: ' . $e->getMessage());
+        $this->line('On Windows, set OPENSSL_CONF to the openssl.cnf in your PHP folder (extras\ssl\openssl.cnf) and try again.');
+
+        return 1;
+    }
+
+    $this->line('Add these to the backend .env (keep the private key secret):');
+    $this->newLine();
+    $this->line('VAPID_PUBLIC_KEY=' . $keys['publicKey']);
+    $this->line('VAPID_PRIVATE_KEY=' . $keys['privateKey']);
+
+    return 0;
+})->purpose('Create the VAPID key pair web push needs');
+
+Artisan::command('push:check', function (PushCheck $check) {
+    $result = $check->run();
+
+    if (!$result['ran']) {
+        $this->warn('Skipped: push is not configured (VAPID keys) or another check is running.');
+
+        return 0;
+    }
+
+    $this->info("Sent: {$result['price']} price, {$result['market']} market, {$result['brief']} brief.");
+
+    return 0;
+})->purpose('Send due price alerts, market alerts and daily briefs (no AI)');
+
+// Price and market alerts need a quicker beat than the news schedule.
+Schedule::command('push:check')->everyTenMinutes()->withoutOverlapping();

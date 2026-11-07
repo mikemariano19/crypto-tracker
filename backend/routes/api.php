@@ -5,6 +5,7 @@ use App\Http\Controllers\CryptoPriceController;
 use App\Http\Controllers\InsightController;
 use App\Http\Controllers\MarketController;
 use App\Http\Controllers\NewsController;
+use App\Http\Controllers\PushController;
 use App\Http\Controllers\TopGainerController;
 use App\Http\Controllers\WalletProviderController;
 
@@ -49,3 +50,16 @@ Route::get('/news/sentiment/trend', [NewsController::class, 'trend']);
 Route::get('/news', [NewsController::class, 'index']);
 Route::get('/news/{clusterId}', [NewsController::class, 'show']);
 
+// Web push alerts. The browser's subscription endpoint is its only identity,
+// so it travels in POST bodies, never in URLs.
+Route::get('/push/key', [PushController::class, 'key']);
+Route::middleware('throttle:push')->group(function () {
+    Route::post('/push/subscribe', [PushController::class, 'subscribe']);
+    Route::post('/push/state', [PushController::class, 'show']);
+    Route::post('/push/prefs', [PushController::class, 'updatePrefs']);
+    Route::post('/push/alerts', [PushController::class, 'storeAlert']);
+    Route::post('/push/alerts/{id}/delete', [PushController::class, 'destroyAlert'])->whereNumber('id');
+    Route::post('/push/unsubscribe', [PushController::class, 'unsubscribe']);
+    // For a free external scheduler while the server sleeps (X-Cron-Secret).
+    Route::post('/push/check', [PushController::class, 'check']);
+});

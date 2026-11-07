@@ -27,6 +27,7 @@ import ReadMore from "@/components/ReadMore";
 import CryptoChart from "@/components/coin/CryptoChart";
 import UpdatedAgo from "@/components/UpdatedAgo";
 import InfoTip from "@/components/InfoTip";
+import AlertButton from "@/components/alerts/AlertButton";
 import FavoriteButton from "@/components/FavoriteButton";
 import CoinConverter from "@/components/coin/CoinConverter";
 import CurrencyPicker from "@/components/coin/CurrencyPicker";
@@ -267,6 +268,7 @@ export default function CoinProfileView({ coin }: { coin: CoinProfile }) {
             <div className="flex items-center gap-3">
               <UpdatedAgo timestamp={coin.last_updated} />
               <CurrencyPicker currencies={currencies} value={code} onChange={setCurrency} size="sm" />
+              <AlertButton coin={{ id: coin.id, name: coin.name, symbol: coin.symbol, price: coin.price, priceCurrency: "usd" }} />
               <FavoriteButton coinId={coin.id} coinName={coin.name} size="md" />
             </div>
           </div>

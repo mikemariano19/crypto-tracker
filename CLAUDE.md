@@ -18,6 +18,8 @@ Backend (run in `backend/`, PHP 8.4+ — `composer.lock` pins Symfony 8 even tho
 - `php artisan insight:resolve` — score AI price outlooks whose window has passed (scheduled hourly)
 - `php artisan wallets:icons` — download wallet provider icons (scheduled daily)
 - `php artisan reverb:start` — WebSocket server on :8080 for realtime events (not started by `composer dev`)
+- `php artisan push:check` — send due price alerts, market alerts and daily briefs (scheduled every 10 minutes, no AI)
+- `php artisan push:vapid` — create the VAPID key pair web push needs (on Windows, set `OPENSSL_CONF` to PHP's `extras\ssl\openssl.cnf` first, or EC key creation fails)
 
 Frontend (run in `frontend/`):
 - `npm run dev` — Next dev server on :3000
@@ -29,7 +31,7 @@ Frontend (run in `frontend/`):
 ### Request flow
 The browser calls `/api/*` on the Next origin; `next.config.ts` rewrites it to `API_BACKEND_URL` (default `http://localhost:8000`). This means only port 3000 needs exposing for LAN/devtunnel testing. Set `NEXT_PUBLIC_API_URL` only to bypass the rewrite.
 
-Endpoints are listed in `backend/routes/api.php` and are GET-only, apart from `POST /api/insight/{id}`, which starts an AI analysis. Every response uses one envelope:
+Endpoints are listed in `backend/routes/api.php` and are GET-only, apart from `POST /api/insight/{id}`, which starts an AI analysis, and the `POST /api/push/*` alert routes. Every response uses one envelope:
 `{ success, source, stale, cached_at, data }` (or `{ success: false, error }`). On the frontend, `lib/api.ts` (`fetchApi` / `fetchApiWithMeta`) unwraps it and throws on failure so SWR keeps the last good data.
 
 ### Backend: CoinGecko caching (the core idea)
@@ -55,6 +57,9 @@ On-demand analysis on coin pages (`App\Services\Insight`, `config/insight.php`).
 
 CoinGecko's free tier shapes this: OHLC only takes `days` of 1, 7, 14, 30, 90, 180, 365 (so 1D has 48 candles and no EMA50, and 7D analyzes 30 days of 4-hour candles); `total_volumes` is a rolling 24h total, not per-candle volume; and a long candle's close can lag, so zones are judged against the live price from `market_chart`.
 
+### Backend: web push alerts
+`App\Support\Push`, `config/push.php`, `PushController`. No accounts: a browser's push subscription is its identity, its endpoint travels only in POST bodies, and the server stores just the subscription, settings and the coin IDs and thresholds picked (`PushSubscription`, `PriceAlert`, `PushNotification`). Endpoints must be on a real push service (`push.allowed_hosts`), since the server POSTs to them. `PushCheck::run()` (the `push:check` command, or `POST /api/push/check` with `X-Cron-Secret` for a free external scheduler while Render sleeps; a lock stops overlaps) handles price alerts (one-shot, compared in the currency they were set in using `PriceCache` and `MarketData::perUsd()`; a price older than 15 minutes never fires one), market drop or rally (market cap 5% in 24h or BTC 7% in 4h, from BTC samples each run leaves in the cache; once per direction per 12 h) and the daily brief (reuses the latest sentiment snapshot and high-impact story count). `Notifier` applies the rules: category on, quiet hours (the user's own price alerts may be let through), at most 5 a day, a 2-hour cooldown per coin, several hits batched into one message. The brief is exempt from quiet hours and the cap because the user picked its time. A push service saying the subscription expired deletes it. Wording is calm and factual, with no calls to trade (`PushMessages`). `PushSender` is an interface; tests use `FakePushSender`.
+
 ### Realtime
 Laravel Reverb + `laravel-echo`/`pusher-js`. `frontend/lib/echo.ts` reads `NEXT_PUBLIC_REVERB_APP_KEY/HOST/PORT/SCHEME`; in dev it defaults to `ws://127.0.0.1:8080` with key `local`. With no key in a production build, `getEcho()` returns `null` and hooks must skip subscribing. Hooks subscribe to channels (`news`, `crypto-prices`, `top-gainers`, `trending-coins`, `market-stats`, …), but only `news` currently has a backend broadcaster in use; `.env.example` sets `BROADCAST_CONNECTION=log`. `FetchCryptoPrices` / `CryptoPricesUpdated` exist but aren't scheduled or dispatched anywhere. Data hooks fall back to SWR polling.
 
@@ -65,6 +70,7 @@ Laravel Reverb + `laravel-echo`/`pusher-js`. `frontend/lib/echo.ts` reads `NEXT_
 - `components/coin`, `components/news`, `components/portfolio` — feature components; `components/ui` — shadcn (radix-nova style, `components.json`).
 - `lib/wallet/` — portfolio/wallet tracker logic: zod `schema.ts`, `storage.ts` (localStorage with migration; corrupt data is copied aside, never deleted), `actions.ts`, `backup.ts` (import/export), `validate.ts`, `prices.ts`. Heavily unit tested in `lib/wallet/__tests__/`.
 - `components/coin/CryptoChart.tsx` — the coin price chart: every range is candles from `/api/coins/{id}/chart` (`ChartData`): 1D 30-min, 7D and 30D 4-hour, 90D daily candles built from hourly `market_chart` prices (CoinGecko's 90-day OHLC is 4-day), 1Y 4-day. 1D, 7D and 30D can be analyzed. `InsightChart.tsx` wraps Lightweight Charts and must stay client-only (`next/dynamic` with `ssr: false`). It plots prices in the display currency so the scale picks round steps, and keeps the library's attribution logo, which its license requires. Pan and zoom stay off so the chart never takes over page scrolling. "AI Analyze" appears on 1D, 7D and 30D for allowed coins; a stored result only shows after a click, and `useRunInsight` is the only frontend path that can spend AI credits. RSI and volume are chart panes rather than separate charts, so their time axes can't drift, and `snapToCandles` keeps indicator times on the candles.
+- PWA and alerts: `app/manifest.ts`, icons from `lib/pwaIcon.tsx` (`app/apple-icon.tsx`, `/pwa-icon/[size]`), and `public/sw.js`, which only shows pushes and opens same-origin deep links (no offline caching, so prices are never served old). `lib/push.ts` has the browser side; `hooks/usePushAlerts.ts` holds the server state under the `$push:state` SWR key so it's never persisted. Permission is only asked from a click (the bell in `components/alerts/AlertButton.tsx` on coin pages and wallet rows, or a switch on `/alerts`). iPhone and iPad only get push from the Home Screen app, so they see an install guide instead.
 - `lib/money.ts` — all currency display. API values are USD; helpers take a USD value plus `Money { code, rate }` (rate from `/api/exchange-rates`). Locale is fixed to `en-US` so server and client render identically. Use `decimal.js` for portfolio arithmetic.
 - `lib/theme.ts` — dark mode via a `dark` class on `<html>`, set by an inline head script (`THEME_INIT_SCRIPT`) before hydration; falls back to the OS preference.
 - Path alias `@/` → `frontend/`.
@@ -73,7 +79,7 @@ Laravel Reverb + `laravel-echo`/`pusher-js`. `frontend/lib/echo.ts` reads `NEXT_
 - Wrap every `localStorage` access in try/catch; storage may be missing (SSR), blocked or full.
 - Backend tests run with an in-memory SQLite DB, `array` cache and `sync` queue (`phpunit.xml`); fake HTTP with `Http::fake()` rather than calling CoinGecko.
 - Comments explain *why* (rate limits, hydration order, edge cases) in short plain sentences — keep that style.
-- Backend env: `FRONTEND_URLS` (CORS allowlist, comma-separated), `COINGECKO_API_KEY`, `NEWS_*`, `AI_*`. Frontend env: `API_BACKEND_URL`, `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_REVERB_*`.
+- Backend env: `FRONTEND_URLS` (CORS allowlist, comma-separated), `COINGECKO_API_KEY`, `NEWS_*`, `AI_*`, `VAPID_*` and `PUSH_CRON_SECRET` (push is off without VAPID keys). Frontend env: `API_BACKEND_URL`, `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_REVERB_*`.
 
 ## Deployment
 Frontend on Vercel (root `frontend/`). Backend as one Docker container (`backend/Dockerfile`, e.g. Render free tier): `start.sh` migrates, caches config, runs `queue:work` and `schedule:work` in background loops, then `artisan serve` on `$PORT`. The container filesystem is ephemeral, so production uses Postgres (`DB_URL`, Supabase session pooler) with `CACHE_STORE=database`, not SQLite.

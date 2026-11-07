@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Support\News\RelevanceScorer;
+use App\Support\Push\PushSender;
+use App\Support\Push\WebPushSender;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -16,6 +18,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(RelevanceScorer::class, fn () => RelevanceScorer::fromConfig());
+        $this->app->singleton(PushSender::class, WebPushSender::class);
     }
 
     /**
@@ -27,6 +30,15 @@ class AppServiceProvider extends ServiceProvider
         // a normal dashboard tab makes a handful of requests per minute.
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(120)->by($request->ip());
+        });
+
+        // Alert settings change a few times per visit at most.
+        RateLimiter::for('push', function (Request $request) {
+            return Limit::perMinute(30)->by('push:' . $request->ip())->response(fn () => response()->json([
+                'success' => false,
+                'error' => 'Too many requests. Please try again shortly.',
+                'retryAfter' => 60,
+            ], 429));
         });
 
         // Cache hits count too: they're cheap, but this stops scripted hammering.

@@ -33,6 +33,64 @@ class MarketData
     // (4 × 250), so typing never spends CoinGecko calls.
     private const SEARCH_INDEX_PAGES = 4;
 
+    public const EXCHANGE_RATES_KEY = 'exchange_rates_v1';
+
+    public const EXCHANGE_RATES_FRESH_SECONDS = 600;
+
+    // Listed by CoinGecko but not useful to convert into: the IMF's
+    // accounting unit and a bolívar replaced in 2018.
+    private const SKIPPED_CURRENCIES = ['xdr', 'vef'];
+
+    /**
+     * Fiat currencies with their value per 1 USD.
+     *
+     * @return array<int, array{code: string, name: string, unit: string, per_usd: float}>
+     */
+    public static function exchangeRates(): array
+    {
+        $rates = CoinGecko::get('/exchange_rates')['rates'] ?? [];
+        $usd = $rates['usd']['value'] ?? null;
+
+        if (!is_numeric($usd) || $usd <= 0) {
+            throw new \UnexpectedValueException('Exchange rates have no USD rate.');
+        }
+
+        $currencies = [];
+
+        foreach ($rates as $code => $rate) {
+            if (($rate['type'] ?? null) !== 'fiat'
+                || in_array($code, self::SKIPPED_CURRENCIES, true)
+                || !preg_match('/^[a-z]{3}$/', (string) $code)
+                || !is_numeric($rate['value'] ?? null)
+                || $rate['value'] <= 0) {
+                continue;
+            }
+
+            $currencies[] = [
+                'code' => $code,
+                'name' => (string) ($rate['name'] ?? strtoupper($code)),
+                'unit' => (string) ($rate['unit'] ?? strtoupper($code)),
+                'per_usd' => $rate['value'] / $usd,
+            ];
+        }
+
+        usort($currencies, fn ($a, $b) => strcmp($a['code'], $b['code']));
+
+        return $currencies;
+    }
+
+    /**
+     * Currency code => units per 1 USD, from the cached rates (USD is always 1).
+     *
+     * @return array<string, float>
+     */
+    public static function perUsd(): array
+    {
+        $rates = StaleCache::remember(self::EXCHANGE_RATES_KEY, self::EXCHANGE_RATES_FRESH_SECONDS, fn () => self::exchangeRates()) ?? [];
+
+        return ['usd' => 1.0, ...array_column($rates, 'per_usd', 'code')];
+    }
+
     /**
      * Cache key => [fresh seconds, fetcher].
      *

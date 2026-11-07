@@ -21,6 +21,13 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: "Crypto Tracker",
   description: "Cryptocurrency market tracker",
+  // Opened from an iPhone Home Screen it runs as an app, which is what lets
+  // it receive web push there.
+  appleWebApp: {
+    capable: true,
+    title: "CryptoTracker",
+    statusBarStyle: "default",
+  },
 };
 
 // Lets BottomNav read the home-indicator inset. The page then runs under the
