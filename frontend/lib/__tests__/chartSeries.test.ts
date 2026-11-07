@@ -27,12 +27,12 @@ const line: LineSeries = {
 const atSeconds = (seconds: number) => new Date(seconds * 1_000).toISOString();
 
 describe('chartUrlPath', () => {
-  it('uses candles for short ranges and lines for long ones', () => {
+  it('uses candles for every range', () => {
     expect(chartUrlPath('bitcoin', '1d')).toBe('/api/coins/bitcoin/chart?tf=1d');
     expect(chartUrlPath('bitcoin', '7d')).toBe('/api/coins/bitcoin/chart?tf=7d');
-    expect(chartUrlPath('bitcoin', '30d')).toBe('/api/coin/bitcoin/chart?days=30');
-    expect(chartUrlPath('bitcoin', '90d')).toBe('/api/coin/bitcoin/chart?days=90');
-    expect(chartUrlPath('bitcoin', '1y')).toBe('/api/coin/bitcoin/chart?days=365');
+    expect(chartUrlPath('bitcoin', '30d')).toBe('/api/coins/bitcoin/chart?tf=30d');
+    expect(chartUrlPath('bitcoin', '90d')).toBe('/api/coins/bitcoin/chart?tf=90d');
+    expect(chartUrlPath('bitcoin', '1y')).toBe('/api/coins/bitcoin/chart?tf=1y');
   });
 
   it('escapes the coin id', () => {

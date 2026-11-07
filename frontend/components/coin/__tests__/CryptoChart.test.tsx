@@ -27,10 +27,6 @@ const candleBody = (analysisAllowed = true) => ({
   analysisAllowed,
 });
 
-const lineBody = {
-  prices: [[1_000_000, 100], [2_000_000, 150]],
-  total_volumes: [[2_000_000, 7_000]],
-};
 
 const insightBody = (changes: Partial<PriceInsight> = {}): PriceInsight => ({
   coinId: 'bitcoin',
@@ -91,7 +87,8 @@ function respond({ allowed = true, cached = null, run, chart }: Handlers = {}) {
     } else if (chart) {
       reply = chart();
     } else {
-      reply = { body: { success: true, data: url.includes('/api/coins/') ? candleBody(allowed) : lineBody } };
+      // Like the API, longer ranges are never open to analysis.
+      reply = { body: { success: true, data: candleBody(allowed && /tf=(1d|7d)/.test(url)) } };
     }
 
     return new Response(JSON.stringify(reply.body), { status: reply.status ?? 200 });
@@ -147,9 +144,9 @@ describe('plain chart', () => {
 
   it.each([
     ['1D', '/api/coins/bitcoin/chart?tf=1d', 'candles'],
-    ['30D', '/api/coin/bitcoin/chart?days=30', 'line'],
-    ['90D', '/api/coin/bitcoin/chart?days=90', 'line'],
-    ['1Y', '/api/coin/bitcoin/chart?days=365', 'line'],
+    ['30D', '/api/coins/bitcoin/chart?tf=30d', 'candles'],
+    ['90D', '/api/coins/bitcoin/chart?tf=90d', 'candles'],
+    ['1Y', '/api/coins/bitcoin/chart?tf=1y', 'candles'],
   ])('%s loads its own data and draws it', async (label, url, kind) => {
     respond();
     renderChart();
@@ -269,7 +266,10 @@ describe('AI Analyze', () => {
     await screen.findByRole('button', { name: /AI Analyze/ });
 
     fireEvent.click(screen.getByRole('button', { name: '30D' }));
-    await waitFor(() => expect(screen.getByTestId('chart').dataset.kind).toBe('line'));
+    await screen.findByText('30D Low');
+    expect(screen.getByTestId('chart').dataset.kind).toBe('candles');
+    // Not limited to some coins: no range this long can be analyzed.
+    expect(screen.queryByText('AI analysis available for top coins.')).toBeNull();
     expect(screen.queryByRole('button', { name: /AI Analyze/ })).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: '1D' }));

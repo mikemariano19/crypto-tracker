@@ -12,7 +12,7 @@ class InsightController extends Controller
 {
     public function chart(string $id, Request $request): JsonResponse
     {
-        if ($error = $this->inputError($id, $request)) {
+        if ($error = $this->inputError($id, $request, ChartData::chartTimeframes())) {
             return $error;
         }
 
@@ -20,7 +20,7 @@ class InsightController extends Controller
 
         return StaleCache::respond(
             ChartData::chartKey($id, $timeframe),
-            (int) config('insight.chart_fresh_seconds'),
+            ChartData::chartFreshSeconds($timeframe),
             fn () => ChartData::chart($id, $timeframe),
         );
     }
@@ -77,13 +77,16 @@ class InsightController extends Controller
         return StaleCache::jsonResponse($insight, $insight['analyzedAt'], $source, false, $insight['analyzedAt']);
     }
 
-    private function inputError(string $id, Request $request): ?JsonResponse
+    /**
+     * @param  array<string, int>|null  $timeframes  defaults to the ones that can be analyzed
+     */
+    private function inputError(string $id, Request $request, ?array $timeframes = null): ?JsonResponse
     {
         if (!preg_match('/^[a-zA-Z0-9-]+$/', $id)) {
             return response()->json(['success' => false, 'error' => 'Invalid coin ID.'], 422);
         }
 
-        if (!array_key_exists($this->timeframe($request), ChartData::TIMEFRAMES)) {
+        if (!array_key_exists($this->timeframe($request), $timeframes ?? ChartData::TIMEFRAMES)) {
             return response()->json(['success' => false, 'error' => 'Invalid chart timeframe.'], 422);
         }
 
