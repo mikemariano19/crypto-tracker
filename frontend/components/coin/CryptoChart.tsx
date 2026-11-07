@@ -53,7 +53,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 export default function CryptoChart({ coinId, livePrice, liveUpdatedAt }: Props) {
   const [selected, setSelected] = useState<ChartRange>("7d");
   // The chart stays clean until asked: a stored result only shows after a click,
-  // and stays on while switching 1D and 7D if the other one is already there.
+  // and stays on while switching between analyzed ranges if that one is already there.
   const [analysisOn, setAnalysisOn] = useState(false);
   // History stays in USD; only the labels are converted.
   const { money } = useDisplayCurrency();
@@ -255,7 +255,7 @@ export default function CryptoChart({ coinId, livePrice, liveUpdatedAt }: Props)
           >
             {insight ? (
               <>
-                <KeyLevelsTable zones={insight.zones} money={money} />
+                <KeyLevelsTable zones={insight.zones} money={money} timeframe={insight.timeframe} />
                 <AiOutlookPanel insight={insight} />
                 <NewsPinList pins={insight.newsPins} />
               </>

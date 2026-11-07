@@ -117,7 +117,7 @@ class InsightChartTest extends TestCase
         $this->getJson('/api/coins/bitcoin/chart?tf=2d')->assertStatus(422);
         $this->getJson('/api/coins/bad%20id/chart')->assertStatus(422);
         // Long ranges are chart only: there is nothing to analyze.
-        $this->getJson('/api/insight/bitcoin?tf=30d')->assertStatus(422);
+        $this->getJson('/api/insight/bitcoin?tf=90d')->assertStatus(422);
         $this->postJson('/api/insight/bitcoin?tf=1y')->assertStatus(422);
 
         Http::assertNothingSent();
@@ -131,9 +131,12 @@ class InsightChartTest extends TestCase
         $this->getJson('/api/coins/bitcoin/chart?tf=30d')
             ->assertOk()
             ->assertJsonPath('data.timeframe', '30d')
-            ->assertJsonPath('data.analysisAllowed', false)
+            ->assertJsonPath('data.analysisAllowed', true)
             ->assertJsonCount(2, 'data.candles');
-        $this->getJson('/api/coins/bitcoin/chart?tf=1y')->assertOk()->assertJsonPath('data.timeframe', '1y');
+        $this->getJson('/api/coins/bitcoin/chart?tf=1y')
+            ->assertOk()
+            ->assertJsonPath('data.timeframe', '1y')
+            ->assertJsonPath('data.analysisAllowed', false);
 
         Http::assertSentCount(4);
         Http::assertSent(fn (Request $request) => str_contains($request->url(), '/ohlc') && $request['days'] === 30);

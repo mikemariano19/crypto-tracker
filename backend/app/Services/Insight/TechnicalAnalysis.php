@@ -16,6 +16,14 @@ class TechnicalAnalysis
 
     private const MAX_ZONES_PER_SIDE = 2;
 
+    private const ATR_PERIOD = 14;
+
+    // A zone is at least this share of the average candle range wide, so a
+    // volatile coin's normal wiggle doesn't read as a break of the level.
+    private const ZONE_ATR_SHARE = 0.5;
+
+    private const STRENGTH_STEP_UP = ['weak' => 'moderate', 'moderate' => 'strong', 'strong' => 'strong'];
+
     // A touch this far into the data counts as recent.
     private const RECENT_FROM_SHARE = 2 / 3;
 
@@ -59,7 +67,7 @@ class TechnicalAnalysis
 
         return [
             'price' => $price,
-            'zones' => self::zones($candles, $price, $settings['swing_window'], $settings['zone_width_pct']),
+            'zones' => self::zones($candles, $price, $settings['swing_window'], $settings['zone_width_pct'], self::atr($candles, self::ATR_PERIOD)),
             'ema20' => self::visibleLine($times, $fast, $visibleFrom),
             'ema50' => self::visibleLine($times, $slow, $visibleFrom),
             'rsi' => self::visibleLine($times, $rsi, $visibleFrom),
@@ -142,12 +150,14 @@ class TechnicalAnalysis
     }
 
     /**
-     * Touches, plus one if the latest touch is in the newest third of the data.
+     * Times the level held, plus one if it was last tested in the newest third
+     * of the data. The first break is the usual role flip (old resistance
+     * becoming support); every break after it means the level isn't holding.
      */
-    public static function zoneStrength(int $touches, int $latestIndex, int $candleCount): string
+    public static function zoneStrength(int $rejections, int $latestIndex, int $candleCount, int $breaks = 0): string
     {
         $isRecent = $latestIndex >= $candleCount * self::RECENT_FROM_SHARE;
-        $score = $touches + ($isRecent ? 1 : 0);
+        $score = $rejections + ($isRecent ? 1 : 0) - max(0, $breaks - 1);
 
         return match (true) {
             $score >= self::STRONG_SCORE => 'strong',
@@ -157,15 +167,24 @@ class TechnicalAnalysis
     }
 
     /**
-     * At most two zones on each side of the price, closest first, named R1/R2
-     * and S1/S2. Distance is measured to the zone's middle.
+     * At most two zones on each side of the price, named R1/R2 and S1/S2,
+     * closest first. Distance is measured to the zone's middle.
      *
-     * @return array<int, array{id: string, type: string, from: float, to: float, distancePct: float, strength: string, touches: int, testing: bool}>
+     * Swing points say where a level is; every candle that reached it after
+     * that says how well it held. The zone is never narrower than half the
+     * average candle range ($atr), so a fixed width can't make a volatile
+     * coin's levels look broken by ordinary noise.
+     *
+     * @return array<int, array{id: string, type: string, from: float, to: float, distancePct: float, strength: string, touches: int, rejections: int, breaks: int, testing: bool}>
      */
-    public static function zones(array $candles, float $price, int $window, float $widthPct): array
+    public static function zones(array $candles, float $price, int $window, float $widthPct, ?float $atr = null): array
     {
         if ($price <= 0) {
             return [];
+        }
+
+        if ($atr !== null && $atr > 0) {
+            $widthPct = max($widthPct, self::ZONE_ATR_SHARE * $atr / $price * 100);
         }
 
         $swings = array_values(array_filter(
@@ -174,18 +193,77 @@ class TechnicalAnalysis
         ));
 
         $zones = array_map(
-            fn (array $cluster) => self::buildZone($cluster, $price, $widthPct, count($candles)),
+            fn (array $cluster) => self::buildZone($cluster, $candles, $price, $widthPct),
             self::clusterSwings($swings, $widthPct),
         );
+
+        return self::pickAndName($zones);
+    }
+
+    /**
+     * Checks a short timeframe's levels against a longer one's, the way a
+     * trader marks the bigger levels first. A level both agree on is one step
+     * stronger. A longer-timeframe level is added when it's closer than what
+     * the short one found, or fills a side it left short, since price may be
+     * about to meet it even if the short chart can't see it yet.
+     *
+     * @param  array<int, array>  $zones  from zones() on the short timeframe
+     * @param  array<int, array>  $higher  from zones() on the long one, at the same price
+     * @return array<int, array> the zones, each with `source` (the timeframe it was found on) and `confluence`
+     */
+    public static function withHigherTimeframe(array $zones, array $higher, string $timeframe, string $higherTimeframe): array
+    {
+        $overlaps = fn (array $a, array $b) => $a['from'] <= $b['to'] && $b['from'] <= $a['to'];
+        $unmatched = $higher;
+        $candidates = [];
+
+        foreach ($zones as $zone) {
+            $agrees = array_filter($higher, fn (array $other) => $overlaps($zone, $other)) !== [];
+
+            $candidates[] = [
+                ...$zone,
+                // Agreeing with the bigger picture adds evidence; it doesn't replace it.
+                'strength' => $agrees ? self::STRENGTH_STEP_UP[$zone['strength']] : $zone['strength'],
+                'source' => $timeframe,
+                'confluence' => $agrees,
+            ];
+
+            $unmatched = array_filter($unmatched, fn (array $other) => !$overlaps($zone, $other));
+        }
+
+        foreach (['resistance', 'support'] as $type) {
+            $own = array_filter($zones, fn (array $zone) => $zone['type'] === $type);
+            $reach = count($own) >= self::MAX_ZONES_PER_SIDE ? max(array_map(fn (array $zone) => abs($zone['distancePct']), $own)) : INF;
+
+            foreach ($unmatched as $zone) {
+                if ($zone['type'] === $type && abs($zone['distancePct']) < $reach) {
+                    $candidates[] = [...$zone, 'source' => $higherTimeframe, 'confluence' => false];
+                }
+            }
+        }
+
+        return self::pickAndName($candidates);
+    }
+
+    /**
+     * Up to two zones a side, closest first, named R1/R2 and S1/S2.
+     */
+    private static function pickAndName(array $zones): array
+    {
+        $zones = array_map(function (array $zone) {
+            unset($zone['id']);
+
+            return $zone;
+        }, $zones);
 
         usort($zones, fn (array $a, array $b) => abs($a['distancePct']) <=> abs($b['distancePct']));
 
         $picked = [];
 
         foreach (['resistance' => 'R', 'support' => 'S'] as $type => $prefix) {
-            $side = array_values(array_filter($zones, fn (array $zone) => $zone['type'] === $type));
+            $side = self::pickSide(array_values(array_filter($zones, fn (array $zone) => $zone['type'] === $type)));
 
-            foreach (array_slice($side, 0, self::MAX_ZONES_PER_SIDE) as $i => $zone) {
+            foreach ($side as $i => $zone) {
                 $picked[] = ['id' => $prefix . ($i + 1), ...$zone];
             }
         }
@@ -193,15 +271,50 @@ class TechnicalAnalysis
         return $picked;
     }
 
-    private static function buildZone(array $cluster, float $price, float $widthPct, int $candleCount): array
+    /**
+     * Levels with more evidence beat ones that are merely closer: a single
+     * touch only fills a slot nothing better took. A zone the price is in is
+     * always relevant. Overlapping zones would be the same level twice.
+     *
+     * @param  array<int, array>  $side  closest first
+     */
+    private static function pickSide(array $side): array
+    {
+        $picked = [];
+        $isEligible = [
+            fn (array $zone) => $zone['strength'] !== 'weak' || $zone['testing'],
+            fn (array $zone) => $zone['strength'] === 'weak' && !$zone['testing'],
+        ];
+
+        foreach ($isEligible as $eligible) {
+            foreach ($side as $zone) {
+                if (count($picked) >= self::MAX_ZONES_PER_SIDE) {
+                    break 2;
+                }
+
+                $overlaps = array_filter($picked, fn (array $other) => $zone['from'] <= $other['to'] && $other['from'] <= $zone['to']);
+
+                if ($eligible($zone) && $overlaps === []) {
+                    $picked[] = $zone;
+                }
+            }
+        }
+
+        usort($picked, fn (array $a, array $b) => abs($a['distancePct']) <=> abs($b['distancePct']));
+
+        return $picked;
+    }
+
+    private static function buildZone(array $cluster, array $candles, float $price, float $widthPct): array
     {
         $prices = array_column($cluster, 'price');
         $middle = (min($prices) + max($prices)) / 2;
 
         // Clustering keeps a group's own spread under the width, so every zone
-        // comes out this wide, centered on its touches. A level is never exact.
+        // comes out this wide, centered on its swings. A level is never exact.
         $from = $middle * (1 - $widthPct / 200);
         $to = $middle * (1 + $widthPct / 200);
+        $tests = self::zoneTests($candles, $from, $to);
 
         return [
             // A zone the price is inside still gets a side, from its middle.
@@ -209,10 +322,97 @@ class TechnicalAnalysis
             'from' => $from,
             'to' => $to,
             'distancePct' => round(($middle - $price) / $price * 100, 2),
-            'strength' => self::zoneStrength(count($cluster), max(array_column($cluster, 'index')), $candleCount),
-            'touches' => count($cluster),
+            'strength' => self::zoneStrength($tests['rejections'], $tests['latestIndex'], count($candles), $tests['breaks']),
+            'touches' => $tests['touches'],
+            'rejections' => $tests['rejections'],
+            'breaks' => $tests['breaks'],
             'testing' => $price >= $from && $price <= $to,
         ];
+    }
+
+    /**
+     * Each run of candles that reached into the zone is one test. It held if
+     * price left on the side it came from, and broke if it left on the other.
+     * A test still going on, or one at the very start of the data, is a touch
+     * with no verdict yet.
+     *
+     * @return array{touches: int, rejections: int, breaks: int, latestIndex: int}
+     */
+    public static function zoneTests(array $candles, float $from, float $to): array
+    {
+        $result = ['touches' => 0, 'rejections' => 0, 'breaks' => 0, 'latestIndex' => 0];
+        $count = count($candles);
+        $side = fn (array $candle) => $candle['close'] > $to ? 1 : -1;
+        $i = 0;
+
+        while ($i < $count) {
+            if ($candles[$i]['high'] < $from || $candles[$i]['low'] > $to) {
+                $i++;
+
+                continue;
+            }
+
+            $start = $i;
+
+            while ($i < $count && $candles[$i]['high'] >= $from && $candles[$i]['low'] <= $to) {
+                $i++;
+            }
+
+            $result['touches']++;
+            $result['latestIndex'] = $start;
+
+            // Candles outside the zone are wholly above or below it.
+            if ($start > 0 && $i < $count) {
+                $side($candles[$start - 1]) === $side($candles[$i])
+                    ? $result['rejections']++
+                    : $result['breaks']++;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * The zones a timeframe's own analysis would show, for checking a shorter
+     * timeframe against.
+     *
+     * @param  array{swing_window: int, zone_width_pct: float}  $settings
+     */
+    public static function levelsFor(array $candles, float $price, array $settings): array
+    {
+        return self::zones($candles, $price, $settings['swing_window'], $settings['zone_width_pct'], self::atr($candles));
+    }
+
+    /**
+     * Average true range with Wilder's smoothing: the typical size of one
+     * candle, gaps included. Null with too few candles.
+     */
+    public static function atr(array $candles, int $period = self::ATR_PERIOD): ?float
+    {
+        $count = count($candles);
+
+        if ($count <= $period) {
+            return null;
+        }
+
+        $ranges = [];
+
+        for ($i = 1; $i < $count; $i++) {
+            $previousClose = $candles[$i - 1]['close'];
+            $ranges[] = max(
+                $candles[$i]['high'] - $candles[$i]['low'],
+                abs($candles[$i]['high'] - $previousClose),
+                abs($candles[$i]['low'] - $previousClose),
+            );
+        }
+
+        $atr = array_sum(array_slice($ranges, 0, $period)) / $period;
+
+        foreach (array_slice($ranges, $period) as $range) {
+            $atr = ($atr * ($period - 1) + $range) / $period;
+        }
+
+        return $atr;
     }
 
     /**

@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Log;
  */
 class OutlookAccuracy
 {
-    private const WINDOW_SECONDS = ['1d' => 86_400, '7d' => 604_800];
+    private const WINDOW_SECONDS = ['1d' => 86_400, '7d' => 604_800, '30d' => 2_592_000];
 
     private const STATS_DAYS = 30;
 

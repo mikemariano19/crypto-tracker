@@ -3,7 +3,7 @@ import type { ChartRange, LinePoint } from '@/types/chart';
 import type { InsightTimeframe, NewsPin, PriceInsight, PriceZone } from '@/types/insight';
 
 export function insightTimeframe(range: ChartRange): InsightTimeframe | null {
-  return range === '1d' || range === '7d' ? range : null;
+  return range === '1d' || range === '7d' || range === '30d' ? range : null;
 }
 
 export function insightUrlPath(coinId: string, timeframe: InsightTimeframe): string {
@@ -87,4 +87,14 @@ export function nearestLevelsText(zones: PriceZone[], money: Money): string {
     resistance ? `Nearest resistance ${formatFiatPrice(zoneMiddle(resistance), money)}.` : 'No resistance level found.',
     support ? `Nearest support ${formatFiatPrice(zoneMiddle(support), money)}.` : 'No support level found.',
   ].join(' ');
+}
+
+/**
+ * How a level relates to the 30D chart, for 1D and 7D analyses: a level both
+ * charts agree on, or one only the 30D chart can see. Null for anything else.
+ */
+export function higherTimeframeTag(zone: PriceZone, timeframe: InsightTimeframe): string | null {
+  if (zone.confluence) return 'Also 30D';
+
+  return zone.source && zone.source !== timeframe ? `${zone.source.toUpperCase()} level` : null;
 }

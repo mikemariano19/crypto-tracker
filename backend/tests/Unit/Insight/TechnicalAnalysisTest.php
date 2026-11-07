@@ -185,6 +185,170 @@ class TechnicalAnalysisTest extends TestCase
         $this->assertSame([], TA::zones($this->candles([[10, 9], [11, 10], [12, 11]]), 12.0, 1, 1.0));
     }
 
+    public function test_each_visit_to_a_zone_is_a_test_that_held_or_broke(): void
+    {
+        $tests = TA::zoneTests($this->candles([
+            [95, 94],          // below
+            [100, 96],         // test 1 from below...
+            [97, 95],          // ...and back below: held
+            [103, 98],         // test 2 from below...
+            [106, 104],        // ...and out above: broke
+            [102, 100.5],      // test 3 from above...
+            [105, 103],        // ...and back above: held
+            [101, 99.5],       // test 4, still going on
+        ]), 99.0, 101.0);
+
+        $this->assertSame(['touches' => 4, 'rejections' => 2, 'breaks' => 1, 'latestIndex' => 7], $tests);
+    }
+
+    public function test_a_run_of_candles_in_the_zone_is_one_test(): void
+    {
+        $tests = TA::zoneTests($this->candles([[95, 94], [100, 99], [100.5, 99.5], [100, 99], [95, 94]]), 99.0, 101.0);
+
+        $this->assertSame(1, $tests['touches']);
+        $this->assertSame(1, $tests['rejections']);
+    }
+
+    public function test_breaks_beyond_the_first_weaken_a_level(): void
+    {
+        // The first break is a role flip; later ones mean it isn't holding.
+        $this->assertSame('strong', TA::zoneStrength(3, 80, 90, 1));
+        $this->assertSame('moderate', TA::zoneStrength(3, 80, 90, 2));
+        $this->assertSame('weak', TA::zoneStrength(3, 80, 90, 3));
+    }
+
+    public function test_atr_is_the_typical_candle_range_including_gaps(): void
+    {
+        $steady = $this->candles(array_fill(0, 15, [11, 9]));
+
+        $this->assertEqualsWithDelta(2.0, TA::atr($steady, 14), 0.0001);
+        $this->assertNull(TA::atr(array_slice($steady, 0, 14), 14));
+
+        // A gap up counts from the previous close, not just this candle's range.
+        $gapped = $this->candles([[11, 9], [11, 9], [21, 20], [21, 20]]);
+        $this->assertEqualsWithDelta((2 + 11 + 1) / 3, TA::atr($gapped, 3), 0.0001);
+    }
+
+    public function test_volatile_coins_get_wider_zones(): void
+    {
+        $candles = $this->candles([[90, 89], [110, 89], [90, 89]]);
+
+        // Half of a 10-point average range is 5% at this price, above the 1% floor.
+        $zones = TA::zones($candles, 100.0, 1, 1.0, 10.0);
+        $this->assertEqualsWithDelta(107.25, $zones[0]['from'], 0.001);
+        $this->assertEqualsWithDelta(112.75, $zones[0]['to'], 0.001);
+
+        // A calm coin keeps the floor.
+        $calm = TA::zones($candles, 100.0, 1, 1.0, 0.5);
+        $this->assertEqualsWithDelta(109.45, $calm[0]['from'], 0.001);
+    }
+
+    public function test_a_level_that_held_beats_a_closer_single_touch(): void
+    {
+        $zones = TA::zones($this->candles([
+            [112, 110],
+            [111, 105],        // 105 holds as support three times...
+            [112, 110],
+            [111, 105.1],
+            [112, 110],
+            [111, 105.2],
+            [112, 110],
+            [111, 95],         // ...then breaks
+            [97, 95],
+            [102, 96],         // one bounce off 102
+            [99, 97],
+            [100.5, 99.5, 100],
+        ]), 100.0, 1, 1.0);
+
+        $resistance = array_values(array_filter($zones, fn ($zone) => $zone['type'] === 'resistance'));
+        $middles = array_map(fn ($zone) => round(($zone['from'] + $zone['to']) / 2, 2), $resistance);
+
+        // 102 is closer, but held only once and was broken on the way down.
+        $this->assertSame([105.1, 112.0], $middles);
+        $this->assertSame(['R1', 'R2'], array_column($resistance, 'id'));
+        $this->assertSame(3, $resistance[0]['rejections']);
+        $this->assertSame(1, $resistance[0]['breaks']);
+        $this->assertSame('moderate', $resistance[0]['strength']);
+    }
+
+    // ---- Higher timeframe ----
+
+    /** A zone 1% wide at $middle, with the price at 100. */
+    private function zone(string $id, float $middle, string $strength = 'weak'): array
+    {
+        return [
+            'id' => $id,
+            'type' => $middle > 100 ? 'resistance' : 'support',
+            'from' => $middle * 0.995,
+            'to' => $middle * 1.005,
+            'distancePct' => round($middle - 100, 2),
+            'strength' => $strength,
+            'touches' => 1,
+            'rejections' => 1,
+            'breaks' => 0,
+            'testing' => false,
+        ];
+    }
+
+    public function test_a_level_the_longer_chart_agrees_with_is_one_step_stronger(): void
+    {
+        $zones = TA::withHigherTimeframe(
+            [$this->zone('R1', 110, 'weak'), $this->zone('S1', 95, 'strong')],
+            [$this->zone('R1', 110.4, 'moderate'), $this->zone('S1', 95.2, 'strong')],
+            '1d',
+            '30d',
+        );
+
+        $byId = array_column($zones, null, 'id');
+
+        $this->assertTrue($byId['R1']['confluence']);
+        $this->assertSame('moderate', $byId['R1']['strength']);
+        $this->assertSame('1d', $byId['R1']['source']);
+        // Already strong stays strong, and the level keeps its own place.
+        $this->assertSame('strong', $byId['S1']['strength']);
+        $this->assertEqualsWithDelta(95.0, ($byId['S1']['from'] + $byId['S1']['to']) / 2, 0.001);
+        $this->assertCount(2, $zones);
+    }
+
+    public function test_a_closer_longer_chart_level_is_added_and_a_farther_one_is_not(): void
+    {
+        $zones = TA::withHigherTimeframe(
+            [$this->zone('R1', 105, 'moderate'), $this->zone('R2', 108, 'moderate')],
+            [$this->zone('R1', 103, 'strong'), $this->zone('R2', 112, 'strong')],
+            '7d',
+            '30d',
+        );
+
+        $resistance = array_values(array_filter($zones, fn ($zone) => $zone['type'] === 'resistance'));
+
+        // 103 is closer than what 7D found; 112 is beyond both.
+        $this->assertSame([103.0, 105.0], array_map(fn ($zone) => round(($zone['from'] + $zone['to']) / 2, 2), $resistance));
+        $this->assertSame(['R1', 'R2'], array_column($resistance, 'id'));
+        $this->assertSame(['30d', '7d'], array_column($resistance, 'source'));
+        $this->assertFalse($resistance[0]['confluence']);
+    }
+
+    public function test_a_longer_chart_level_fills_a_side_the_short_one_left_empty(): void
+    {
+        $zones = TA::withHigherTimeframe([$this->zone('R1', 104)], [$this->zone('S1', 90, 'strong')], '1d', '30d');
+
+        $byId = array_column($zones, null, 'id');
+
+        $this->assertSame('30d', $byId['S1']['source']);
+        $this->assertSame('1d', $byId['R1']['source']);
+    }
+
+    public function test_no_longer_chart_levels_leaves_the_levels_as_they_were(): void
+    {
+        $zones = [$this->zone('R1', 104, 'moderate'), $this->zone('S1', 97)];
+
+        $checked = TA::withHigherTimeframe($zones, [], '30d', '30d');
+
+        $this->assertSame(['R1', 'S1'], array_column($checked, 'id'));
+        $this->assertSame(['moderate', 'weak'], array_column($checked, 'strength'));
+        $this->assertSame([false, false], array_column($checked, 'confluence'));
+    }
+
     public function test_tiny_prices_keep_their_precision(): void
     {
         $zones = TA::zones($this->candles([[0.000004, 0.000003], [0.000005, 0.000003], [0.000004, 0.000003]]), 0.000004, 1, 1.0);

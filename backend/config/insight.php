@@ -9,7 +9,7 @@ return [
     // Each refresh costs two CoinGecko calls, so visitors share one copy.
     'chart_fresh_seconds' => (int) env('INSIGHT_CHART_FRESH_SECONDS', 300),
 
-    // The 30D, 90D and 1Y candles barely change from one refresh to the next.
+    // The 90D and 1Y candles barely change from one refresh to the next.
     'long_chart_fresh_seconds' => (int) env('INSIGHT_LONG_CHART_FRESH_SECONDS', 1_800),
 
     // CoinGecko id => ticker, which is how the news feed tags its stories. A
@@ -40,6 +40,7 @@ return [
     'cache_seconds' => [
         '1d' => (int) env('INSIGHT_CACHE_MINUTES_1D', 60) * 60,
         '7d' => (int) env('INSIGHT_CACHE_MINUTES_7D', 360) * 60,
+        '30d' => (int) env('INSIGHT_CACHE_MINUTES_30D', 720) * 60,
     ],
 
     // Short, so a paused or failed outlook can fill in later the same day.
@@ -68,7 +69,7 @@ return [
     // Scoring past outlooks against what the price then did.
     'accuracy' => [
         // A smaller move than this counts as flat, not as a move either way.
-        'flat_band_pct' => ['1d' => 0.5, '7d' => 2.0],
+        'flat_band_pct' => ['1d' => 0.5, '7d' => 2.0, '30d' => 5.0],
         // Later than this, the price is no longer a fair test of the outlook.
         'late_after_seconds' => 21_600,
         // A percentage from fewer outlooks than this would mostly be noise.
@@ -92,6 +93,17 @@ return [
             'visible_seconds' => 604_800,
             'swing_window' => 2,
             'zone_width_pct' => 1.0,
+            'ema_fast' => 20,
+            'ema_slow' => 50,
+            'rsi_period' => 14,
+            'volume_period' => 20,
+        ],
+        // The same 4-hour candles as 7D, over the whole month. A wider swing
+        // window keeps only the turns that mattered at this scale.
+        '30d' => [
+            'visible_seconds' => 2_592_000,
+            'swing_window' => 4,
+            'zone_width_pct' => 1.5,
             'ema_fast' => 20,
             'ema_slow' => 50,
             'rsi_period' => 14,
