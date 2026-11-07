@@ -114,10 +114,75 @@ class InsightChartTest extends TestCase
     {
         Http::fake();
 
-        $this->getJson('/api/coins/bitcoin/chart?tf=30d')->assertStatus(422);
+        $this->getJson('/api/coins/bitcoin/chart?tf=2d')->assertStatus(422);
         $this->getJson('/api/coins/bad%20id/chart')->assertStatus(422);
+        // Long ranges are chart only: there is nothing to analyze.
+        $this->getJson('/api/insight/bitcoin?tf=30d')->assertStatus(422);
+        $this->postJson('/api/insight/bitcoin?tf=1y')->assertStatus(422);
 
         Http::assertNothingSent();
+    }
+
+    public function test_thirty_days_and_a_year_use_coingecko_candles(): void
+    {
+        config(['insight.allowed_coins' => ['bitcoin' => 'BTC']]);
+        $this->fakeCoinGecko();
+
+        $this->getJson('/api/coins/bitcoin/chart?tf=30d')
+            ->assertOk()
+            ->assertJsonPath('data.timeframe', '30d')
+            ->assertJsonPath('data.analysisAllowed', false)
+            ->assertJsonCount(2, 'data.candles');
+        $this->getJson('/api/coins/bitcoin/chart?tf=1y')->assertOk()->assertJsonPath('data.timeframe', '1y');
+
+        Http::assertSentCount(4);
+        Http::assertSent(fn (Request $request) => str_contains($request->url(), '/ohlc') && $request['days'] === 30);
+        Http::assertSent(fn (Request $request) => str_contains($request->url(), '/ohlc') && $request['days'] === 365);
+    }
+
+    public function test_ninety_days_builds_daily_candles_from_hourly_prices(): void
+    {
+        $day = 86_400;
+        $start = 1_762_041_600; // A UTC midnight.
+
+        Http::fake([
+            'api.coingecko.com/api/v3/coins/bitcoin/market_chart*' => Http::response([
+                'prices' => [
+                    [$start * 1000, 100],
+                    [($start + 3_600) * 1000, 120],
+                    [($start + 7_200) * 1000, 90],
+                    [($start + 10_800) * 1000, 110],
+                    [($start + $day) * 1000, 111],
+                    [($start + $day + 3_600) * 1000, 105],
+                ],
+                'total_volumes' => [[$start * 1000, 1000], [($start + $day + 3_600) * 1000, 1500]],
+            ]),
+        ]);
+
+        $this->getJson('/api/coins/bitcoin/chart?tf=90d')
+            ->assertOk()
+            ->assertJsonPath('data.analysisAllowed', false)
+            ->assertJsonPath('data.candles', [
+                ['time' => $start + $day, 'open' => 100, 'high' => 120, 'low' => 90, 'close' => 110],
+                ['time' => $start + 2 * $day, 'open' => 111, 'high' => 111, 'low' => 105, 'close' => 105],
+            ])
+            ->assertJsonPath('data.volume.1.value', 1500)
+            ->assertJsonPath('data.price', 105);
+
+        // One call: the OHLC endpoint's 90-day candles are too coarse to use.
+        Http::assertSentCount(1);
+        Http::assertSent(fn (Request $request) => $request['days'] === 90);
+    }
+
+    public function test_long_ranges_stay_fresh_longer(): void
+    {
+        $this->fakeCoinGecko();
+
+        $this->getJson('/api/coins/bitcoin/chart?tf=1y')->assertOk();
+        $this->travel((int) config('insight.chart_fresh_seconds') + 1)->seconds();
+        $this->getJson('/api/coins/bitcoin/chart?tf=1y')->assertOk()->assertJsonPath('source', 'cache');
+
+        Http::assertSentCount(2);
     }
 
     public function test_unknown_coin_is_a_404(): void

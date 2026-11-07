@@ -10,17 +10,12 @@ import type {
 
 const MS_PER_SECOND = 1_000;
 
-const LINE_RANGE_DAYS: Partial<Record<ChartRange, number>> = { '30d': 30, '90d': 90, '1y': 365 };
-
 /**
- * 1D and 7D come as real candles. CoinGecko's free tier only has 4-day candles
- * past 30 days, too coarse to read, so longer ranges are a line.
+ * Every range comes as candles. The API picks the candle size each range can
+ * get on CoinGecko's free tier; only 1D and 7D can be analyzed.
  */
 export function chartUrlPath(coinId: string, range: ChartRange): string {
-  const id = encodeURIComponent(coinId);
-  const days = LINE_RANGE_DAYS[range];
-
-  return days ? `/api/coin/${id}/chart?days=${days}` : `/api/coins/${id}/chart?tf=${range}`;
+  return `/api/coins/${encodeURIComponent(coinId)}/chart?tf=${range}`;
 }
 
 function pointsFromPairs(pairs: [number, number][] | undefined): LinePoint[] {
@@ -148,12 +143,12 @@ export function formatChartTick(time: number, range: ChartRange): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-/** Hover labels. The year view has daily points, so its time would mislead. */
+/** Hover labels. 90D and 1Y candles span a day or more, so a time would mislead. */
 export function formatChartTime(time: number, range: ChartRange): string {
   const date = new Date(time * MS_PER_SECOND);
   const day = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 
-  return range === '1y'
+  return range === '90d' || range === '1y'
     ? day
     : `${day} · ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
 }

@@ -15,6 +15,14 @@ class ChartData
     // candles for 1 day and 4-hour candles for 7; `interval` is paid only.
     public const TIMEFRAMES = ['1d' => 1, '7d' => 7];
 
+    // Longer ranges are chart only, with no analysis. CoinGecko's free OHLC
+    // gives 4-hour candles for 30 days and 4-day ones for 365. For 90 days it
+    // only has 4-day candles (about 23, too coarse to read), so daily candles
+    // are built from the hourly prices `market_chart` returns for that range.
+    public const CHART_ONLY_TIMEFRAMES = ['30d' => 30, '90d' => 90, '1y' => 365];
+
+    private const BUILT_CANDLE_SECONDS = ['90d' => 86_400];
+
     // 4-hour candles need 30 days of history for EMA50 and RSI, at the same size.
     private const ANALYSIS_DAYS = ['1d' => 1, '7d' => 30];
 
@@ -31,8 +39,31 @@ class ChartData
         return "insight_history_{$coinId}_{$timeframe}";
     }
 
+    /** Every range the chart can show, analysis or not. */
+    public static function chartTimeframes(): array
+    {
+        return [...self::TIMEFRAMES, ...self::CHART_ONLY_TIMEFRAMES];
+    }
+
+    /** Long ranges barely move, so they're refreshed less often. */
+    public static function chartFreshSeconds(string $timeframe): int
+    {
+        return array_key_exists($timeframe, self::CHART_ONLY_TIMEFRAMES)
+            ? (int) config('insight.long_chart_fresh_seconds')
+            : (int) config('insight.chart_fresh_seconds');
+    }
+
     public static function chart(string $coinId, string $timeframe): array
     {
+        if (array_key_exists($timeframe, self::CHART_ONLY_TIMEFRAMES)) {
+            return [
+                'coinId' => $coinId,
+                'timeframe' => $timeframe,
+                'analysisAllowed' => false,
+                ...self::fetchChartOnly($coinId, $timeframe),
+            ];
+        }
+
         $days = self::ANALYSIS_DAYS[$timeframe];
         $data = self::fetch($coinId, $days);
 
@@ -102,6 +133,73 @@ class ChartData
             // Fresher than the last candle's close, which can be hours old.
             'price' => is_array($latest) && is_numeric($latest[1] ?? null) ? (float) $latest[1] : null,
         ];
+    }
+
+    /**
+     * @return array{candles: array, volume: array, price: ?float}
+     */
+    private static function fetchChartOnly(string $coinId, string $timeframe): array
+    {
+        $days = self::CHART_ONLY_TIMEFRAMES[$timeframe];
+        $bucket = self::BUILT_CANDLE_SECONDS[$timeframe] ?? null;
+
+        if ($bucket === null) {
+            return self::fetch($coinId, $days);
+        }
+
+        // One call: the hourly prices become the candles and carry the volume.
+        $chart = CoinGecko::get("/coins/{$coinId}/market_chart", [
+            'vs_currency' => 'usd',
+            'days' => $days,
+        ], timeout: 15);
+
+        $prices = (array) ($chart['prices'] ?? []);
+        $candles = self::candlesFromPrices($prices, $bucket);
+        $latest = end($prices);
+
+        return [
+            'candles' => $candles,
+            'volume' => self::volumeAtCandles($candles, (array) ($chart['total_volumes'] ?? [])),
+            'price' => is_array($latest) && is_numeric($latest[1] ?? null) ? (float) $latest[1] : null,
+        ];
+    }
+
+    /**
+     * Groups price samples into fixed UTC buckets. Each candle is stamped with
+     * its close time, like CoinGecko's own, so the forming one sits at the end
+     * and the live price updates it instead of adding another.
+     *
+     * @param  array<int, mixed>  $points  [timeMs, price]
+     * @return array<int, array{time: int, open: float, high: float, low: float, close: float}>
+     */
+    public static function candlesFromPrices(array $points, int $bucketSeconds): array
+    {
+        $samples = [];
+
+        foreach ($points as $point) {
+            if (is_array($point) && is_numeric($point[0] ?? null) && is_numeric($point[1] ?? null)) {
+                $samples[(int) ($point[0] / 1000)] = (float) $point[1];
+            }
+        }
+
+        ksort($samples);
+
+        $buckets = [];
+
+        foreach ($samples as $time => $price) {
+            $close = intdiv($time, $bucketSeconds) * $bucketSeconds + $bucketSeconds;
+            $candle = $buckets[$close] ?? null;
+
+            $buckets[$close] = $candle === null
+                ? ['time' => $close, 'open' => $price, 'high' => $price, 'low' => $price, 'close' => $price]
+                : [...$candle, 'high' => max($candle['high'], $price), 'low' => min($candle['low'], $price), 'close' => $price];
+        }
+
+        if (count($buckets) < 2) {
+            throw new \UnexpectedValueException('Invalid price data.');
+        }
+
+        return array_values($buckets);
     }
 
     /**

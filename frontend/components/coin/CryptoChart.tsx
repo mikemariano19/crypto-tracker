@@ -152,7 +152,8 @@ export default function CryptoChart({ coinId, livePrice, liveUpdatedAt }: Props)
         </div>
       </div>
 
-      {isCandles && !allowed && !isSwitching && (
+      {/* Longer ranges are candles too, but can't be analyzed for any coin. */}
+      {timeframe && isCandles && !allowed && !isSwitching && (
         <p className="mb-3 text-[11px] text-muted-foreground">AI analysis available for top coins.</p>
       )}
 

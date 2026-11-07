@@ -9,6 +9,9 @@ return [
     // Each refresh costs two CoinGecko calls, so visitors share one copy.
     'chart_fresh_seconds' => (int) env('INSIGHT_CHART_FRESH_SECONDS', 300),
 
+    // The 30D, 90D and 1Y candles barely change from one refresh to the next.
+    'long_chart_fresh_seconds' => (int) env('INSIGHT_LONG_CHART_FRESH_SECONDS', 1_800),
+
     // CoinGecko id => ticker, which is how the news feed tags its stories. A
     // hand-kept snapshot of the top coins by market cap: it should only change
     // when someone decides to spend AI credits on another. Stablecoins and
