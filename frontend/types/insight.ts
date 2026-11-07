@@ -4,7 +4,7 @@
 import type { LinePoint } from '@/types/chart';
 import type { Level, SentimentLabel, SentimentSplit } from '@/types/news';
 
-export type InsightTimeframe = '1d' | '7d';
+export type InsightTimeframe = '1d' | '7d' | '30d';
 export type Strength = 'weak' | 'moderate' | 'strong';
 export type Trend = 'up' | 'down' | 'sideways';
 export type RsiState = 'overbought' | 'oversold' | 'neutral';
@@ -19,7 +19,14 @@ export interface PriceZone {
   distancePct: number;
   strength: Strength;
   touches: number;
+  /** How many tests the level held and how many went through it. Missing on results cached before these existed. */
+  rejections?: number;
+  breaks?: number;
   testing: boolean;
+  /** The chart the level was found on: this analysis's own, or 30D's. Missing on older results. */
+  source?: InsightTimeframe;
+  /** Found on this chart and also a 30D level. */
+  confluence?: boolean;
 }
 
 export interface AiOutlook {

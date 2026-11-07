@@ -25,6 +25,13 @@ class PriceInsight
     // Longer than the slowest run, so a second run can't start alongside it.
     private const LOCK_SECONDS = 180;
 
+    // The timeframe whose levels 1D and 7D are checked against.
+    private const HIGHER_TIMEFRAME = '30d';
+
+    // Fetching 30D's candles is two CoinGecko calls. With less time than this
+    // left, the AI matters more, so 1D goes without the check.
+    private const MIN_SECONDS_TO_FETCH_HIGHER = 20;
+
     // When this run must be done by (microtime), set at the start of run().
     private float $deadline = INF;
 
@@ -72,6 +79,24 @@ class PriceInsight
         }
     }
 
+    /**
+     * The 30D levels, to check a 1D or 7D analysis against. They're a
+     * refinement, so anything missing here just leaves the levels unchecked.
+     */
+    private function higherLevels(string $coinId, string $timeframe, array $candles, float $price): array
+    {
+        if ($timeframe === self::HIGHER_TIMEFRAME) {
+            return [];
+        }
+
+        // 7D already analyzes the same month of candles.
+        $month = $timeframe === '7d'
+            ? $candles
+            : ChartData::monthCandles($coinId, $this->deadline - microtime(true) >= self::MIN_SECONDS_TO_FETCH_HIGHER);
+
+        return $month ? TechnicalAnalysis::levelsFor($month, $price, config('insight.analysis.' . self::HIGHER_TIMEFRAME)) : [];
+    }
+
     private function analyze(string $coinId, string $timeframe): ?array
     {
         $history = ChartData::history($coinId, $timeframe);
@@ -85,6 +110,12 @@ class PriceInsight
         $candles = $history['candles'];
 
         $analysis = TechnicalAnalysis::analyze($candles, $history['volume'], $settings, $history['price']);
+        $analysis['zones'] = TechnicalAnalysis::withHigherTimeframe(
+            $analysis['zones'],
+            $this->higherLevels($coinId, $timeframe, $candles, $analysis['price']),
+            $timeframe,
+            self::HIGHER_TIMEFRAME,
+        );
         $news = InsightSummary::news($symbol, $settings['visible_seconds']);
 
         [$ai, $aiStatus] = $this->outlook(

@@ -23,7 +23,7 @@ import { ZonesPrimitive } from "@/components/coin/zonesPrimitive";
 import { useIsDark } from "@/hooks/useIsDark";
 import { chartMinMove, formatChartTick, formatChartTime } from "@/lib/chartSeries";
 import { LABEL_TEXT } from "@/lib/formatNews";
-import { pinsOnCandles, snapToCandles } from "@/lib/insight";
+import { higherTimeframeTag, pinsOnCandles, snapToCandles } from "@/lib/insight";
 import { formatFiatAxis, formatFiatCompact, formatFiatPrice, type Money } from "@/lib/money";
 import type { ChartRange, ChartSeries } from "@/types/chart";
 import type { InsightToggles, NewsPin, PriceInsight } from "@/types/insight";
@@ -369,7 +369,9 @@ export default function InsightChart({ series, range, money, isUp, label, insigh
     if (insight && shown?.sr && insight.zones.length > 0) {
       zones = new ZonesPrimitive(
         insight.zones.map((zone) => ({
-          label: `${zone.id} · ${zone.testing ? "price testing" : zone.strength}`,
+          label: [zone.id, zone.testing ? "price testing" : zone.strength, higherTimeframeTag(zone, insight.timeframe)]
+            .filter(Boolean)
+            .join(" · "),
           isResistance: zone.type === "resistance",
           from: toDisplay(zone.from),
           to: toDisplay(zone.to),

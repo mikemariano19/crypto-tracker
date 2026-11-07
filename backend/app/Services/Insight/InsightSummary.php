@@ -86,7 +86,13 @@ class InsightSummary
                 'distancePct' => $zone['distancePct'],
                 'strength' => $zone['strength'],
                 'touches' => $zone['touches'],
+                // How often price bounced off the level, and went through it.
+                'held' => $zone['rejections'] ?? 0,
+                'broke' => $zone['breaks'] ?? 0,
                 'testing' => $zone['testing'],
+                // Found on the 30D chart, or on this one and confirmed by it.
+                'source' => $zone['source'] ?? $timeframe,
+                'confluence' => $zone['confluence'] ?? false,
             ], $analysis['zones']),
             'news' => $news['stories'] === 0 ? null : [
                 'storyCount' => $news['stories'],

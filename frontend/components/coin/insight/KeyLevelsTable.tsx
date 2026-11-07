@@ -1,7 +1,7 @@
 import { formatSignedPct } from "@/lib/formatNews";
-import { zoneMiddle, zonesByPrice } from "@/lib/insight";
+import { higherTimeframeTag, zoneMiddle, zonesByPrice } from "@/lib/insight";
 import { formatFiatPrice, type Money } from "@/lib/money";
-import type { PriceZone } from "@/types/insight";
+import type { InsightTimeframe, PriceZone } from "@/types/insight";
 
 const STRENGTH_TEXT: Record<PriceZone["strength"], string> = {
   weak: "Weak",
@@ -13,7 +13,7 @@ const STRENGTH_TEXT: Record<PriceZone["strength"], string> = {
  * The levels as a real table: the accessible alternative to the zones drawn on
  * the chart, which a screen reader can't see.
  */
-export default function KeyLevelsTable({ zones, money }: { zones: PriceZone[]; money: Money }) {
+export default function KeyLevelsTable({ zones, money, timeframe }: { zones: PriceZone[]; money: Money; timeframe: InsightTimeframe }) {
   const hasResistance = zones.some((zone) => zone.type === "resistance");
   const hasSupport = zones.some((zone) => zone.type === "support");
 
@@ -41,10 +41,21 @@ export default function KeyLevelsTable({ zones, money }: { zones: PriceZone[]; m
                 >
                   {zone.id}
                   <span className="sr-only"> {zone.type}</span>
+                  {higherTimeframeTag(zone, timeframe) && (
+                    <span className="block text-[10px] font-medium text-gray-500">{higherTimeframeTag(zone, timeframe)}</span>
+                  )}
                 </th>
                 <td className="py-1.5 text-right font-semibold text-gray-900">{formatFiatPrice(zoneMiddle(zone), money)}</td>
                 <td className="py-1.5 text-right text-gray-500">{formatSignedPct(zone.distancePct, 1)}</td>
-                <td className="py-1.5 text-right text-gray-500">{zone.testing ? "Testing" : STRENGTH_TEXT[zone.strength]}</td>
+                <td className="py-1.5 text-right text-gray-500">
+                  {zone.testing ? "Testing" : STRENGTH_TEXT[zone.strength]}
+                  {/* The evidence behind the strength. Older cached results don't have it. */}
+                  {zone.rejections !== undefined && (
+                    <span className="block text-[10px]">
+                      Held {zone.rejections}×{zone.breaks ? `, broke ${zone.breaks}×` : ""}
+                    </span>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

@@ -164,6 +164,67 @@ class PriceInsightApiTest extends TestCase
         $this->assertSame($chart->json('data.candles.0.time'), $analysis->json('data.rsi.0.time'));
     }
 
+    public function test_one_day_levels_are_checked_against_the_cached_month(): void
+    {
+        // The coin page opens on 7D, which caches the month of candles.
+        $this->getJson('/api/coins/bitcoin/chart?tf=7d')->assertOk();
+        Http::assertSentCount(2);
+
+        $this->api->queue($this->goodAnswer());
+        $response = $this->postJson('/api/insight/bitcoin?tf=1d')->assertOk();
+
+        // Only 1D's own two calls: the month came from the cache.
+        Http::assertSentCount(4);
+        $this->assertNotEmpty($response->json('data.zones'));
+
+        foreach ($response->json('data.zones') as $zone) {
+            $this->assertContains($zone['source'], ['1d', '30d']);
+            $this->assertIsBool($zone['confluence']);
+        }
+
+        $this->assertArrayHasKey('confluence', $this->sentSummary()['levels'][0]);
+    }
+
+    public function test_one_day_fetches_the_month_when_nothing_is_cached(): void
+    {
+        $this->api->queue($this->goodAnswer());
+        $this->postJson('/api/insight/bitcoin?tf=1d')->assertOk();
+
+        Http::assertSentCount(4);
+        Http::assertSent(fn (HttpRequest $request) => str_contains($request->url(), '/ohlc') && $request['days'] === 30);
+    }
+
+    public function test_one_day_skips_the_month_when_short_on_time(): void
+    {
+        // Less than the 20 seconds fetching the month needs.
+        config(['insight.deadline_seconds' => 15]);
+
+        $this->api->queue($this->goodAnswer());
+        $response = $this->postJson('/api/insight/bitcoin?tf=1d')->assertOk()->assertJsonPath('data.aiStatus', 'ok');
+
+        Http::assertSentCount(2);
+        $this->assertSame([], array_filter($response->json('data.zones'), fn ($zone) => $zone['source'] !== '1d'));
+    }
+
+    public function test_thirty_day_analysis_uses_its_own_month_of_candles(): void
+    {
+        $this->api->queue($this->goodAnswer());
+
+        $response = $this->postJson('/api/insight/bitcoin?tf=30d')
+            ->assertOk()
+            ->assertJsonPath('data.timeframe', '30d')
+            ->assertJsonPath('data.aiStatus', 'ok')
+            ->assertJsonPath('data.expiresAt', '2026-11-07T00:00:00Z');
+
+        // All 180 candles are on screen, so the lines cover all of them that have a value.
+        Http::assertSent(fn (HttpRequest $request) => str_contains($request->url(), '/ohlc') && $request['days'] === 30);
+        $this->assertCount(180 - 14, $response->json('data.rsi'));
+        $this->assertCount(180 - 49, $response->json('data.ema50'));
+        $this->assertSame('30d', $this->sentSummary()['timeframe']);
+        // Scored against the price a month later.
+        $this->assertTrue(InsightOutlook::firstOrFail()->resolve_at->equalTo(now()->addDays(30)));
+    }
+
     public function test_one_day_analysis_has_no_ema50(): void
     {
         $this->api->queue($this->goodAnswer());
@@ -605,9 +666,9 @@ class PriceInsightApiTest extends TestCase
 
     public function test_bad_input_is_rejected(): void
     {
-        $this->postJson('/api/insight/bitcoin?tf=30d')->assertStatus(422);
+        $this->postJson('/api/insight/bitcoin?tf=90d')->assertStatus(422);
         $this->postJson('/api/insight/bad%20id')->assertStatus(422);
-        $this->getJson('/api/insight/bitcoin?tf=30d')->assertStatus(422);
+        $this->getJson('/api/insight/bitcoin?tf=1y')->assertStatus(422);
 
         Http::assertNothingSent();
     }

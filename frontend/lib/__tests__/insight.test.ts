@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  higherTimeframeTag,
   insightTimeframe,
   insightUrlPath,
   isInsightFresh,
@@ -23,10 +24,10 @@ const zone = (id: string, type: PriceZone['type'], from: number, distancePct: nu
 });
 
 describe('insightTimeframe', () => {
-  it('only exists for the candle ranges', () => {
+  it('exists for 1D, 7D and 30D only', () => {
     expect(insightTimeframe('1d')).toBe('1d');
     expect(insightTimeframe('7d')).toBe('7d');
-    expect(insightTimeframe('30d')).toBeNull();
+    expect(insightTimeframe('30d')).toBe('30d');
     expect(insightTimeframe('90d')).toBeNull();
     expect(insightTimeframe('1y')).toBeNull();
   });
@@ -139,5 +140,20 @@ describe('nearestLevelsText', () => {
   it('says so when a side has none', () => {
     expect(nearestLevelsText([zone('R1', 'resistance', 110, 10)], USD_MONEY)).toBe('Nearest resistance $111.00. No support level found.');
     expect(nearestLevelsText([], USD_MONEY)).toBe('No resistance level found. No support level found.');
+  });
+});
+
+describe('higherTimeframeTag', () => {
+  const level = zone('R1', 'resistance', 100, 2);
+
+  it('names a level both charts agree on, or one only 30D sees', () => {
+    expect(higherTimeframeTag({ ...level, source: '1d', confluence: true }, '1d')).toBe('Also 30D');
+    expect(higherTimeframeTag({ ...level, source: '30d', confluence: false }, '7d')).toBe('30D level');
+  });
+
+  it('says nothing for a level of the chart itself, or an older result', () => {
+    expect(higherTimeframeTag({ ...level, source: '1d', confluence: false }, '1d')).toBeNull();
+    expect(higherTimeframeTag({ ...level, source: '30d', confluence: false }, '30d')).toBeNull();
+    expect(higherTimeframeTag(level, '7d')).toBeNull();
   });
 });

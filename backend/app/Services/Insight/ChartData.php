@@ -11,23 +11,28 @@ use App\Support\StaleCache;
  */
 class ChartData
 {
-    // Timeframe => CoinGecko `days`. On the free tier that gives 30-minute
-    // candles for 1 day and 4-hour candles for 7; `interval` is paid only.
-    public const TIMEFRAMES = ['1d' => 1, '7d' => 7];
+    // The timeframes that can be analyzed, => CoinGecko `days`. On the free
+    // tier that gives 30-minute candles for 1 day and 4-hour candles for 7 and
+    // 30; `interval` is paid only.
+    public const TIMEFRAMES = ['1d' => 1, '7d' => 7, '30d' => 30];
 
-    // Longer ranges are chart only, with no analysis. CoinGecko's free OHLC
-    // gives 4-hour candles for 30 days and 4-day ones for 365. For 90 days it
-    // only has 4-day candles (about 23, too coarse to read), so daily candles
-    // are built from the hourly prices `market_chart` returns for that range.
-    public const CHART_ONLY_TIMEFRAMES = ['30d' => 30, '90d' => 90, '1y' => 365];
+    // Longer ranges are chart only. CoinGecko's free OHLC gives 4-day candles
+    // for 365 days. For 90 days it also only has 4-day candles (about 23, too
+    // coarse to read), so daily candles are built from the hourly prices
+    // `market_chart` returns for that range.
+    public const CHART_ONLY_TIMEFRAMES = ['90d' => 90, '1y' => 365];
 
     private const BUILT_CANDLE_SECONDS = ['90d' => 86_400];
 
-    // 4-hour candles need 30 days of history for EMA50 and RSI, at the same size.
-    private const ANALYSIS_DAYS = ['1d' => 1, '7d' => 30];
+    // 4-hour candles need 30 days of history for EMA50 and RSI, at the same
+    // size. 30D's own 180 candles already give it that.
+    private const ANALYSIS_DAYS = ['1d' => 1, '7d' => 30, '30d' => 30];
 
     // Older than this, an analysis would describe a market that has moved on.
     private const MAX_ANALYSIS_DATA_AGE_SECONDS = 1_800;
+
+    // A month's levels move slowly, so the copy they're read from can be older.
+    private const MAX_HIGHER_TIMEFRAME_AGE_SECONDS = 21_600;
 
     public static function chartKey(string $coinId, string $timeframe): string
     {
@@ -106,6 +111,33 @@ class ChartData
         }
 
         return $data;
+    }
+
+    /**
+     * The month of 4-hour candles that 30D levels come from, for checking 1D
+     * levels against. The 30D chart and 7D's history are the same data, and 7D
+     * is the chart every coin page opens on, so a copy is nearly always cached.
+     * Levels this long barely move, so an older copy is fine.
+     *
+     * @param  bool  $mayFetch  false when the visitor's request has no time to wait on CoinGecko
+     */
+    public static function monthCandles(string $coinId, bool $mayFetch): ?array
+    {
+        foreach ([self::chartKey($coinId, '30d'), self::historyKey($coinId, '7d')] as $key) {
+            $entry = StaleCache::peek($key);
+
+            if ($entry && now()->getTimestamp() - $entry['fetched_at'] <= self::MAX_HIGHER_TIMEFRAME_AGE_SECONDS) {
+                return $entry['data']['candles'] ?? null;
+            }
+        }
+
+        if (!$mayFetch) {
+            return null;
+        }
+
+        $data = StaleCache::remember(self::chartKey($coinId, '30d'), self::chartFreshSeconds('30d'), fn () => self::chart($coinId, '30d'));
+
+        return $data['candles'] ?? null;
     }
 
     /**

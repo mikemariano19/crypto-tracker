@@ -25,7 +25,7 @@ class ClaudeInsightClient extends ClaudeJsonClient
 
     Describe a bias, not a prediction: say what the data leans towards, not what will happen. Never tell anyone to buy, sell, hold, enter or exit, and never suggest a position size.
 
-    Weigh the technicals and the news, and say so when they disagree, for example "Technicals bearish, news mixed". When the data is weak (few touches, RSI near 50, no news), lower your confidence and lean neutral. There may be no support or resistance on one side, and news may be null. Do not invent what is missing.
+    Weigh the technicals and the news, and say so when they disagree, for example "Technicals bearish, news mixed". Each level says how many times price tested it (touches), bounced off it (held) and went through it (broke); a level that broke more often than it held is a weak guide. A level with confluence true is also a level on the 30-day chart, and source 30d means it comes from that chart rather than this one; both deserve more weight than a level seen only on a short chart. When the data is weak (few touches, RSI near 50, no news), lower your confidence and lean neutral. There may be no support or resistance on one side, and news may be null. Do not invent what is missing.
 
     Return:
     - outlook: bullish, neutral and bearish as whole percentages that sum to 100.

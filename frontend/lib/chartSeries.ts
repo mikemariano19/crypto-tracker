@@ -12,7 +12,7 @@ const MS_PER_SECOND = 1_000;
 
 /**
  * Every range comes as candles. The API picks the candle size each range can
- * get on CoinGecko's free tier; only 1D and 7D can be analyzed.
+ * get on CoinGecko's free tier; 1D, 7D and 30D can be analyzed.
  */
 export function chartUrlPath(coinId: string, range: ChartRange): string {
   return `/api/coins/${encodeURIComponent(coinId)}/chart?tf=${range}`;

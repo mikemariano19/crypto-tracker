@@ -87,8 +87,8 @@ function respond({ allowed = true, cached = null, run, chart }: Handlers = {}) {
     } else if (chart) {
       reply = chart();
     } else {
-      // Like the API, longer ranges are never open to analysis.
-      reply = { body: { success: true, data: candleBody(allowed && /tf=(1d|7d)/.test(url)) } };
+      // Like the API, 90D and 1Y are never open to analysis.
+      reply = { body: { success: true, data: candleBody(allowed && /tf=(1d|7d|30d)/.test(url)) } };
     }
 
     return new Response(JSON.stringify(reply.body), { status: reply.status ?? 200 });
@@ -259,7 +259,7 @@ describe('plain chart', () => {
 });
 
 describe('AI Analyze', () => {
-  it('only appears on 1D and 7D', async () => {
+  it('appears on 1D, 7D and 30D only', async () => {
     respond();
     renderChart();
 
@@ -267,6 +267,10 @@ describe('AI Analyze', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '30D' }));
     await screen.findByText('30D Low');
+    await screen.findByRole('button', { name: /AI Analyze/ });
+
+    fireEvent.click(screen.getByRole('button', { name: '90D' }));
+    await screen.findByText('90D Low');
     expect(screen.getByTestId('chart').dataset.kind).toBe('candles');
     // Not limited to some coins: no range this long can be analyzed.
     expect(screen.queryByText('AI analysis available for top coins.')).toBeNull();
