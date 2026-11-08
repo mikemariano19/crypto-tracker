@@ -7,8 +7,10 @@ import {
   createSubscription,
   existingSubscription,
   pushBlocker,
+  pushSetupError,
   type PushBlocker,
 } from '@/lib/push';
+import { currentBrowser } from '@/lib/install';
 import type { NewPriceAlert, PushKey, PushPrefs, PushState } from '@/types/push';
 
 // A free Render instance can take most of a minute to wake up.
@@ -123,7 +125,15 @@ export function usePushAlerts(currency: string) {
   const ensureSubscribed = useCallback(async (prefs: Partial<PushPrefs> = {}): Promise<PushSubscription | null> => {
     if (!key?.publicKey) return null;
 
-    const subscription = await createSubscription(key.publicKey);
+    let subscription: PushSubscription | null;
+
+    try {
+      subscription = await createSubscription(key.publicKey);
+    } catch {
+      // Permission was given but the browser's push service refused, as
+      // Brave's does until it's switched on. Its raw error means nothing to people.
+      throw new Error(pushSetupError(currentBrowser()));
+    }
 
     if (!subscription) {
       // Declining doesn't block the page, but the browser won't ask again.

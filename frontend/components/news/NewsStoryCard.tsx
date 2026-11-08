@@ -284,8 +284,10 @@ export default function NewsStoryCard({
 
   return (
     <article
+      // News alerts link here as /news#story-{id}.
+      id={`story-${story.clusterId}`}
       className={cn(
-        "rounded-xl border border-l-4 bg-white p-4 shadow-sm transition-shadow hover:shadow-md sm:p-5",
+        "scroll-mt-24 rounded-xl border border-l-4 bg-white p-4 shadow-sm transition-shadow hover:shadow-md sm:p-5",
         stripeClass(story)
       )}
     >

@@ -49,8 +49,8 @@ export const aboutSchema = z.object({
   }),
   ai: z.object({
     model: z.string().min(1),
-    // Not in the spec's model: the AI step is built into the pipeline's
-    // plan but not switched on yet, and the page must say so honestly.
+    // Not in the spec's model: lets the page say honestly when the AI step
+    // is switched off, rather than describe it as running.
     status: z.enum(['live', 'coming-soon']),
     statusNote: z.string().min(1),
     uses: z.array(z.string().min(1)),
@@ -79,29 +79,39 @@ export type AboutContent = z.infer<typeof aboutSchema>;
 export const about: AboutContent = {
   app: {
     name: 'CryptoTracker',
-    tagline: 'Track crypto prices, trader-relevant market news, and your holdings in one place.',
+    tagline: 'Track crypto prices, market news, AI chart analysis and your holdings in one place, with the alerts you choose.',
     description:
-      'CryptoTracker is a free market dashboard for crypto. It shows live prices and market data, groups the day’s market-moving news into single stories, and lets you track what you hold across wallets and exchanges, without an account.',
+      'CryptoTracker is a free market dashboard for crypto. It shows live prices and candle charts, groups the day’s market-moving news into single stories with AI sentiment, explains a coin’s chart with AI on request, tracks what you hold across wallets and exchanges, and sends the alerts you turn on. No account needed, and it installs on your phone like an app.',
     badge: 'Personal portfolio project',
-    version: '0.1.0',
-    lastUpdated: '2026-10-30',
+    version: '0.2.0',
+    lastUpdated: '2026-11-08',
     repoUrl: 'https://github.com/mikemariano19/crypto-tracker',
   },
 
   features: [
     {
       id: 'market',
-      title: 'Market data',
-      description: 'Live prices for the top 1,000 coins, 24h movers, trending coins, market cap and the Fear & Greed index.',
+      title: 'Market data & charts',
+      description:
+        'Live prices for the top 1,000 coins, 24h movers, trending coins, market cap and the Fear & Greed index, with candle charts from 1 day to 1 year, shown in dozens of currencies.',
       href: '/',
       icon: 'chart',
+      enabled: true,
+    },
+    {
+      id: 'insight',
+      title: 'AI price analysis',
+      description:
+        'On a top coin’s chart, tap AI Analyze for support and resistance zones, EMA, RSI and volume, with a short plain-language outlook. The levels are calculated in code; the AI only explains them.',
+      href: '/',
+      icon: 'sparkles',
       enabled: true,
     },
     {
       id: 'news',
       title: 'Crypto news & sentiment',
       description:
-        'Headlines from major crypto outlets, grouped by event and ranked by how much they matter to traders. AI sentiment and trader takes are being added.',
+        'Headlines from major crypto outlets, grouped by event and ranked by how much they matter to traders, with AI sentiment, summaries and trader takes on the top stories.',
       href: '/news',
       icon: 'newspaper',
       enabled: true,
@@ -109,32 +119,43 @@ export const about: AboutContent = {
     {
       id: 'portfolio',
       title: 'Wallet tracker',
-      description: 'Watch-only holdings in named wallets, valued in USD or PHP with live prices, and stored only in your browser.',
+      description: 'Watch-only holdings in named wallets, valued in your currency with live prices, and stored only in your browser.',
       href: '/portfolio',
       icon: 'wallet',
+      enabled: true,
+    },
+    {
+      id: 'alerts',
+      title: 'Alerts',
+      description:
+        'Price alerts you set, big moves on your coins, market drops or rallies, breaking news and a daily brief, as phone or desktop notifications. Opt-in, at most 5 a day, with quiet hours.',
+      href: '/alerts',
+      icon: 'bell',
       enabled: true,
     },
   ],
 
   howItWorks: [
-    'Every few hours the server reads the latest headlines from crypto news outlets.',
-    'Repeats are removed, stories about the same event are grouped, and each story is scored for how much it matters to traders.',
-    'The top stories are set aside for AI sentiment scoring (being switched on).',
-    'Prices and market data come from CoinGecko and refresh about every minute.',
+    'Prices and market data come from CoinGecko and refresh about every minute, through a shared server cache.',
+    'Every few hours the server reads the latest headlines, removes repeats, groups stories about the same event and scores how much each matters to traders. The top stories get AI sentiment and a short summary.',
+    'When you tap AI Analyze, code calculates the price levels and indicators from the chart, and the AI writes a short explanation that can only refer to those levels.',
+    'Every 10 minutes the server checks prices and news against the alerts you turned on, and sends them through your browser’s own push service.',
     'Your wallets never leave your browser; only the list of coins is sent to look up prices.',
   ],
 
   diagram: [
     {
-      steps: [{ label: 'News sources' }, { label: 'Relevance filter' }, { label: 'AI sentiment', pending: true }],
+      steps: [{ label: 'News sources' }, { label: 'Relevance filter' }, { label: 'AI sentiment' }],
       output: 'News feed',
     },
-    { steps: [{ label: 'CoinGecko' }, { label: 'Server cache' }], output: 'Prices & market data' },
+    { steps: [{ label: 'CoinGecko' }, { label: 'Server cache' }], output: 'Prices, charts & market data' },
+    { steps: [{ label: 'Chart candles' }, { label: 'Levels & indicators (code)' }, { label: 'AI explanation' }], output: 'AI price analysis' },
+    { steps: [{ label: 'Your alert settings' }, { label: '10-minute check' }, { label: 'Web push' }], output: 'Alerts' },
     { steps: [{ label: 'Your browser (localStorage)' }], output: 'Wallet tracker' },
   ],
 
   dataSources: [
-    { name: 'CoinGecko', url: 'https://www.coingecko.com', usage: 'Prices, market data, coin list, exchange logos' },
+    { name: 'CoinGecko', url: 'https://www.coingecko.com', usage: 'Prices, charts, market data, coin list, exchange logos' },
     { name: 'Alternative.me', url: 'https://alternative.me/crypto/fear-and-greed-index/', usage: 'Crypto Fear & Greed Index' },
     { name: 'CoinDesk', url: 'https://www.coindesk.com', usage: 'News headlines (RSS)' },
     { name: 'The Block', url: 'https://www.theblock.co', usage: 'News headlines (RSS)' },
@@ -145,30 +166,32 @@ export const about: AboutContent = {
   ],
 
   newsNote:
-    'Every headline links to its original publisher. The feed shows the headline and the outlet’s own short description (or an AI-written summary once AI is on), never the full article.',
+    'Every headline links to its original publisher. The feed shows the headline and either the outlet’s own short description or an AI-written summary, never the full article.',
 
   // CoinGecko's attribution guide: visible text, linked, no implied partnership.
   attribution: { text: 'Data provided by CoinGecko', url: 'https://www.coingecko.com' },
 
   ai: {
     model: 'Claude Haiku 5.5',
-    status: 'coming-soon',
+    status: 'live',
     statusNote:
-      'AI analysis isn’t switched on yet. Until it is, stories are ranked by rule-based relevance only, and any sample analysis starts with a clear “Demo” label.',
+      'AI analysis is on. If the daily AI budget runs out or the AI is unavailable, stories keep their rule-based ranking and charts still show the calculated levels, clearly marked.',
     uses: [
-      'Sentiment split for each top story (bullish / neutral / bearish percentages)',
-      'A short summary written in its own words',
-      'A one-line trader take on what the news may mean',
+      'Sentiment split for each top news story (bullish / neutral / bearish percentages)',
+      'A short news summary written in its own words, and a one-line trader take',
+      'A plain-language outlook for a coin’s chart when you tap AI Analyze, referring only to the levels code calculated',
     ],
     doesNot: [
-      'See your wallets or holdings',
-      'Make trades or place orders',
+      'See your wallets, holdings or alerts',
+      'Pick price levels: support, resistance and indicators are calculated in code',
+      'Make trades, place orders or tell you to buy or sell',
       'Learn from or train on your data',
     ],
     limitations: [
       'AI can be wrong or miss context.',
-      'Only the top stories of each update are analysed.',
-      'Sentiment describes the news, it is not a price prediction.',
+      'Only the top stories of each update are analysed, and chart analysis covers the top coins only.',
+      'Sentiment and outlooks describe the news and the chart; they are not price predictions.',
+      'Past outlooks are scored once their window passes, and the hit rate only shows after 20 scored outlooks.',
     ],
     // Must match NEWS_FETCH_INTERVAL_HOURS in the backend (config/news.php).
     updateIntervalHours: 6,
@@ -177,36 +200,48 @@ export const about: AboutContent = {
   privacy: [
     'Wallets and holdings are stored only in your browser (localStorage). They are never sent to a server; only coin IDs are sent to fetch prices.',
     'Clearing your browser data deletes your wallets. Use Export on the Portfolio page to keep a backup.',
+    'Alerts need no account. The server keeps only your browser’s push subscription, your alert settings, the coins and prices you pick and, if you turn on Big moves, the IDs of your favorite and wallet coins. Never amounts.',
+    'Notifications are only asked for when you tap a bell or switch, never on page load, and you can turn them all off on the Alerts page.',
     'This app never asks for seed phrases, private keys or exchange API keys, and you should never enter them anywhere.',
     'No accounts and no tracking cookies.',
   ],
 
   disclaimer:
-    'This app is for information and education only. Nothing here is financial, investment, or trading advice. Crypto prices are highly volatile and you can lose money. AI-generated analysis may be inaccurate. Always do your own research.',
+    'This app is for information and education only. Nothing here is financial, investment, or trading advice. Crypto prices are highly volatile and you can lose money. AI-generated analysis, outlooks and alerts may be inaccurate or late. Always do your own research.',
 
   stack: [
-    { group: 'Frontend', items: ['Next.js', 'React', 'TypeScript', 'SWR', 'Tailwind CSS', 'Radix UI', 'Recharts'] },
+    { group: 'Frontend', items: ['Next.js', 'React', 'TypeScript', 'SWR', 'Tailwind CSS', 'Radix UI', 'Lightweight Charts', 'Recharts'] },
+    { group: 'App & alerts', items: ['Progressive Web App', 'Web Push (VAPID)', 'Service worker'] },
     { group: 'Real-time', items: ['Laravel Reverb', 'Laravel Echo (WebSockets)'] },
-    { group: 'Backend', items: ['Laravel', 'PHP', 'Scheduler & queues', 'SQLite'] },
+    { group: 'Backend', items: ['Laravel', 'PHP', 'Scheduler & queues', 'PostgreSQL', 'SQLite (local)', 'Docker'] },
+    { group: 'AI', items: ['Claude API (Anthropic SDK)', 'Structured output'] },
     { group: 'Data & quality', items: ['CoinGecko API', 'News RSS feeds', 'Zod', 'decimal.js', 'Vitest', 'PHPUnit'] },
   ],
 
   highlights: [
     {
-      title: 'Shared, per-coin price cache',
-      body: 'Prices are cached one coin at a time, so every visitor’s portfolio reuses the same entries. A request only asks CoinGecko for coins that are missing or stale, in a single call.',
+      title: 'Code calculates, AI explains',
+      body: 'Support and resistance zones come from tested swing points, and indicators are computed in code. The AI only describes them by name, and any answer that invents a price is rejected.',
     },
     {
-      title: 'Accurate money math',
-      body: 'Holdings are stored as exact decimal strings and all values use a decimal library. No floating-point surprises like 0.1 + 0.2.',
+      title: 'Alerts people keep on',
+      body: 'Every alert is opt-in, capped at 5 a day with a cooldown per coin, paused in quiet hours, and several hits arrive as one message. Wording stays calm, with no “buy now” calls.',
+    },
+    {
+      title: 'Shared, per-coin price cache',
+      body: 'Prices are cached one coin at a time, so every visitor’s portfolio reuses the same entries. A request only asks CoinGecko for coins that are missing or stale, in a single call.',
     },
     {
       title: 'Resilient to API limits',
       body: 'Upstream data is served stale-while-revalidate with cooldowns after failures. When CoinGecko is down, the last good data is shown and clearly marked.',
     },
     {
-      title: 'Real-time updates',
-      body: 'New prices and news batches are pushed over WebSockets and merged into the SWR cache, so pages update without reloads.',
+      title: 'Accurate money math',
+      body: 'Holdings are stored as exact decimal strings and all values use a decimal library. No floating-point surprises like 0.1 + 0.2.',
+    },
+    {
+      title: 'Installs like an app',
+      body: 'On phones and tablets it installs to the Home Screen and opens in its own window, in Chrome, Brave, Edge, Samsung Internet, Firefox for Android and Safari.',
     },
     {
       title: 'Privacy by design',
@@ -214,7 +249,7 @@ export const about: AboutContent = {
     },
     {
       title: 'Accessible UI',
-      body: 'Price and sentiment changes always pair colour with arrows, signs and text, and every chart has a readable legend.',
+      body: 'Price and sentiment changes always pair colour with arrows, signs and text, every chart has a readable legend, and dark mode follows your device.',
     },
   ],
 
@@ -234,6 +269,18 @@ export const about: AboutContent = {
 
   changelog: [
     {
+      version: '0.2.0',
+      date: '2026-11-08',
+      changes: [
+        'Added alerts: price alerts, big moves on your coins, market drops or rallies, breaking news and a daily brief',
+        'The app can now be installed on phones and tablets',
+        'Added AI price analysis on coin charts (1D, 7D and 30D) with support and resistance zones',
+        'All chart ranges now show candles, from 1 day to 1 year',
+        'Turned on AI sentiment, summaries and trader takes for top news stories',
+        'Added dark mode, more display currencies and a bottom navigation bar on phones',
+      ],
+    },
+    {
       version: '0.1.0',
       date: '2026-10-30',
       changes: [
@@ -244,5 +291,5 @@ export const about: AboutContent = {
     },
   ],
 
-  roadmap: ['AI sentiment and trader takes on top stories', 'Price alerts', 'Cost basis and profit/loss tracking'],
+  roadmap: ['Cost basis and profit/loss tracking', 'AI price analysis for more coins', 'Alert history that follows you across devices'],
 };

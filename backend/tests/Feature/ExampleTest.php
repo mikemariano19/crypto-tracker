@@ -2,18 +2,21 @@
 
 namespace Tests\Feature;
 
-// use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class ExampleTest extends TestCase
 {
     /**
-     * A basic test example.
+     * The backend is API only (bootstrap/app.php loads no web routes), so the
+     * health check is what hosting uses to see the app is up.
      */
-    public function test_the_application_returns_a_successful_response(): void
+    public function test_the_health_check_responds(): void
     {
-        $response = $this->get('/');
+        $this->get('/up')->assertOk();
+    }
 
-        $response->assertStatus(200);
+    public function test_there_is_no_web_front_page(): void
+    {
+        $this->get('/')->assertNotFound();
     }
 }

@@ -133,6 +133,21 @@ export default function NewsPage() {
     wasFetching.current = feed.isFetching;
   }, [feed.isFetching, clearNewCount, refreshGlobal, mutate]);
 
+  // A news alert opens /news#story-{id}. The stories load after the browser's
+  // own jump to the hash, so scroll to it once it's on the page.
+  const scrolledToHash = useRef(false);
+  const storyCount = feed.stories.length;
+
+  useEffect(() => {
+    if (scrolledToHash.current || storyCount === 0) return;
+
+    const hash = window.location.hash;
+    if (!hash.startsWith("#story-")) return;
+
+    scrolledToHash.current = true;
+    document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView({ block: "start" });
+  }, [storyCount]);
+
   const setFilters = (changes: Partial<NewsFilters>) => {
     router.replace(`/news${filtersToSearch({ ...filters, ...changes })}`, { scroll: false });
   };

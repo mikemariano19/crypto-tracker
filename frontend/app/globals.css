@@ -181,6 +181,16 @@
 
   --color-violet-50: color-mix(in oklab, oklch(60.6% 0.25 292.717) 14%, var(--card));
   --color-violet-700: oklch(81.1% 0.111 293.571);
+
+  /* Alerts: category tints, the on switch and the direction arrows. */
+  --color-violet-600: oklch(70.2% 0.183 293.541);
+  --color-blue-50: color-mix(in oklab, oklch(62.3% 0.214 259.815) 14%, var(--card));
+  --color-blue-600: oklch(70.7% 0.165 254.624);
+  --color-emerald-600: oklch(76.5% 0.177 163.223);
+  --color-emerald-700: oklch(84.5% 0.143 164.978);
+  --color-emerald-800: oklch(90.5% 0.093 164.15);
+  --color-amber-600: oklch(82.8% 0.189 84.429);
+  --color-red-100: color-mix(in oklab, oklch(63.7% 0.237 25.331) 22%, var(--card));
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);

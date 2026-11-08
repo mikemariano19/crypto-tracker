@@ -10,14 +10,15 @@ use App\Models\PushSubscription;
 use App\Support\MarketData;
 use App\Support\PriceCache;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * One pass over every alert: price alerts, market drop or rally, and the
- * daily brief. Plain code and cached prices only, no AI. Runs every 10
- * minutes from the scheduler, and from an external scheduler's call while
- * the free server would otherwise be asleep; the lock keeps them from
- * overlapping.
+ * One pass over every alert: price alerts, big moves and level breaks on
+ * watched coins, market drop or rally, breaking news and mood shifts, and the
+ * daily brief. Plain code and cached data only, no AI. Runs every 10 minutes
+ * from the scheduler, and from an external scheduler's call while the free
+ * server would otherwise be asleep; the lock keeps them from overlapping.
  */
 class PushCheck
 {
@@ -26,31 +27,55 @@ class PushCheck
 
     private const LOCK_SECONDS = 300;
 
-    private const BTC_SAMPLES_KEY = 'push:btc_samples';
+    private const SAMPLES_KEY = 'push:price_samples';
 
-    // BTC's 4-hour move is measured against a sample from 3.5 to 4.5 hours ago.
-    private const BTC_WINDOW_SECONDS = 14_400;
+    // 4-hour moves are measured against a sample from 3.5 to 4.5 hours ago.
+    private const WINDOW_SECONDS = 14_400;
 
-    private const BTC_WINDOW_SLACK_SECONDS = 1_800;
+    private const WINDOW_SLACK_SECONDS = 1_800;
 
-    public function __construct(private Notifier $notifier) {}
+    // The run before only counts as "before" if it was this recent: after the
+    // server slept, a level crossed hours ago is old news.
+    private const PREVIOUS_MAX_AGE_SECONDS = 3_600;
+
+    // Every distinct watched coin is priced each run, in one CoinGecko call.
+    private const MAX_WATCHED_COINS = 250;
+
+    public function __construct(
+        private Notifier $notifier,
+        private CoinMoves $moves,
+        private NewsAlerts $news,
+    ) {}
 
     /**
-     * @return array{ran: bool, price: int, market: int, brief: int}
+     * @return array{ran: bool, price: int, moves: int, market: int, news: int, brief: int}
      */
     public function run(): array
     {
         $lock = Cache::lock('push:check', self::LOCK_SECONDS);
 
         if (!$this->notifier->isConfigured() || !$lock->get()) {
-            return ['ran' => false, 'price' => 0, 'market' => 0, 'brief' => 0];
+            return ['ran' => false, 'price' => 0, 'moves' => 0, 'market' => 0, 'news' => 0, 'brief' => 0];
         }
 
         try {
+            $alerts = PriceAlert::whereNull('triggered_at')->with('subscription')->get();
+            $watchers = $this->watchers();
+
+            $watched = $watchers->pluck('watch_coins')->flatten()->unique()->take(self::MAX_WATCHED_COINS);
+
+            // One price call covers price alerts, watched coins and BTC.
+            $ids = collect(['bitcoin'])->merge($alerts->pluck('coin_id'))->merge($watched)->unique()->values()->all();
+
+            $prices = $this->freshPrices(PriceCache::quotes($ids));
+            [$changes, $previous] = $this->recordSamples($prices);
+
             $counts = [
                 'ran' => true,
-                'price' => $this->priceAlerts(),
-                'market' => $this->marketAlert(),
+                'price' => $this->priceAlerts($alerts, $prices),
+                'moves' => $this->moves->run($watchers, $prices, $changes, $previous),
+                'market' => $this->marketAlert($changes['bitcoin'] ?? null),
+                'news' => $this->news->run(),
                 'brief' => $this->briefs(),
             ];
 
@@ -62,17 +87,98 @@ class PushCheck
         }
     }
 
-    private function priceAlerts(): int
+    /** @return Collection<int, PushSubscription> subscribers who want alerts about their own coins */
+    private function watchers(): Collection
     {
-        $alerts = PriceAlert::whereNull('triggered_at')->with('subscription')->get();
+        return PushSubscription::whereNotNull('watch_coins')->get()
+            ->filter(fn (PushSubscription $subscription) => $subscription->wants('moves') && !empty($subscription->watch_coins))
+            ->values();
+    }
 
+    /**
+     * USD prices recent enough to act on.
+     *
+     * @return array<string, float>
+     */
+    private function freshPrices(array $quotes): array
+    {
+        $freshFrom = now()->getTimestamp() - self::MAX_PRICE_AGE_SECONDS;
+        $prices = [];
+
+        foreach ($quotes['data'] as $id => $quote) {
+            if (is_numeric($quote['usd'] ?? null) && (float) $quote['usd'] > 0 && ($quotes['fetched_at'][$id] ?? 0) >= $freshFrom) {
+                $prices[$id] = (float) $quote['usd'];
+            }
+        }
+
+        return $prices;
+    }
+
+    /**
+     * Each run leaves its prices behind, so a later run can see 4-hour moves
+     * and what the price was on the run before.
+     *
+     * @param  array<string, float>  $prices
+     * @return array{0: array<string, float>, 1: array<string, float>} % change over about 4 hours, and the previous run's price, per coin
+     */
+    private function recordSamples(array $prices): array
+    {
+        $now = now()->getTimestamp();
+        $keepFrom = $now - self::WINDOW_SECONDS - self::WINDOW_SLACK_SECONDS;
+        $kept = [];
+        $changes = [];
+        $previous = [];
+
+        foreach (Cache::get(self::SAMPLES_KEY, []) as $coin => $samples) {
+            $samples = array_values(array_filter($samples, fn (array $sample) => $sample[0] >= $keepFrom));
+
+            if ($samples !== []) {
+                $kept[$coin] = $samples;
+            }
+        }
+
+        foreach ($prices as $coin => $usd) {
+            $samples = $kept[$coin] ?? [];
+            $best = null;
+
+            foreach ($samples as [$time, $price]) {
+                $offBy = abs($now - $time - self::WINDOW_SECONDS);
+
+                if ($offBy <= self::WINDOW_SLACK_SECONDS && $price > 0 && ($best === null || $offBy < $best[0])) {
+                    $best = [$offBy, $price];
+                }
+            }
+
+            if ($best !== null) {
+                $changes[$coin] = ($usd - $best[1]) / $best[1] * 100;
+            }
+
+            $last = $samples === [] ? null : $samples[count($samples) - 1];
+
+            if ($last && $now - $last[0] <= self::PREVIOUS_MAX_AGE_SECONDS) {
+                $previous[$coin] = $last[1];
+            }
+
+            $samples[] = [$now, $usd];
+            $kept[$coin] = $samples;
+        }
+
+        Cache::put(self::SAMPLES_KEY, $kept, now()->addDay());
+
+        return [$changes, $previous];
+    }
+
+    /**
+     * @param  Collection<int, PriceAlert>  $alerts
+     * @param  array<string, float>  $prices
+     */
+    private function priceAlerts(Collection $alerts, array $prices): int
+    {
         if ($alerts->isEmpty()) {
             return 0;
         }
 
-        $quotes = PriceCache::quotes($alerts->pluck('coin_id')->unique()->values()->all());
         $perUsd = MarketData::perUsd();
-        $freshFrom = now()->getTimestamp() - self::MAX_PRICE_AGE_SECONDS;
         $sent = 0;
 
         foreach ($alerts->groupBy('push_subscription_id') as $own) {
@@ -86,14 +192,14 @@ class PushCheck
             $hits = [];
 
             foreach ($own as $alert) {
-                $usd = $quotes['data'][$alert->coin_id]['usd'] ?? null;
+                $usd = $prices[$alert->coin_id] ?? null;
                 $rate = $perUsd[$alert->currency] ?? null;
 
-                if (!is_numeric($usd) || !$rate || ($quotes['fetched_at'][$alert->coin_id] ?? 0) < $freshFrom) {
+                if ($usd === null || !$rate) {
                     continue;
                 }
 
-                $price = (float) $usd * $rate;
+                $price = $usd * $rate;
 
                 if ($alert->isHitBy($price) && !$this->notifier->recentlyAlerted($subscription, $alert->coin_id)) {
                     $hits[] = [$alert, $price];
@@ -119,12 +225,11 @@ class PushCheck
      * Total market cap 5% either way in 24h, or BTC 7% in 4h. Sent once per
      * direction per cooldown, however long the move lasts.
      */
-    private function marketAlert(): int
+    private function marketAlert(?float $btc4h): int
     {
         $settings = config('push.market');
         $global = MarketData::remember('market_global');
         $market24h = is_numeric($global['change_24h'] ?? null) ? (float) $global['change_24h'] : null;
-        $btc4h = $this->btcChange4h();
 
         $move = match (true) {
             $market24h !== null && abs($market24h) >= $settings['market_cap_24h_pct'] => ['kind' => 'market', 'pct' => $market24h],
@@ -157,42 +262,6 @@ class PushCheck
         }
 
         return $sent;
-    }
-
-    /**
-     * Each run leaves a BTC price behind, so a later run can see the 4-hour
-     * move. Null until a sample from about 4 hours ago exists.
-     */
-    private function btcChange4h(): ?float
-    {
-        $quotes = PriceCache::quotes(['bitcoin']);
-        $usd = $quotes['data']['bitcoin']['usd'] ?? null;
-        $now = now()->getTimestamp();
-
-        if (!is_numeric($usd) || ($quotes['fetched_at']['bitcoin'] ?? 0) < $now - self::MAX_PRICE_AGE_SECONDS) {
-            return null;
-        }
-
-        $keepFrom = $now - self::BTC_WINDOW_SECONDS - self::BTC_WINDOW_SLACK_SECONDS;
-        $samples = array_values(array_filter(
-            Cache::get(self::BTC_SAMPLES_KEY, []),
-            fn (array $sample) => $sample[0] >= $keepFrom,
-        ));
-
-        $samples[] = [$now, (float) $usd];
-        Cache::put(self::BTC_SAMPLES_KEY, $samples, now()->addDay());
-
-        $best = null;
-
-        foreach ($samples as [$time, $price]) {
-            $offBy = abs($now - $time - self::BTC_WINDOW_SECONDS);
-
-            if ($offBy <= self::BTC_WINDOW_SLACK_SECONDS && $price > 0 && ($best === null || $offBy < $best[0])) {
-                $best = [$offBy, $price];
-            }
-        }
-
-        return $best === null ? null : ((float) $usd - $best[1]) / $best[1] * 100;
     }
 
     /**

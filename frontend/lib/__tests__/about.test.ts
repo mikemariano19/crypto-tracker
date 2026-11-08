@@ -20,7 +20,7 @@ describe('about content', () => {
   });
 
   it('only links to features that exist in the app', () => {
-    const routes = ['/', '/news', '/portfolio'];
+    const routes = ['/', '/news', '/portfolio', '/alerts'];
     for (const feature of about.features.filter((f) => f.enabled)) {
       expect(routes).toContain(feature.href);
     }

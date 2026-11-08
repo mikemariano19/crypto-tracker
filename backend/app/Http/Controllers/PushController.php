@@ -21,8 +21,8 @@ class PushController extends Controller
 
     private const DEFAULT_PREFS = [
         // Opt-in: setting a price alert is the action that turned push on.
-        // Market alerts and the brief wait until the user switches them on.
-        'categories' => ['price' => true, 'market' => false, 'brief' => false],
+        // Everything else waits until the user switches it on.
+        'categories' => ['price' => true, 'moves' => false, 'market' => false, 'news' => false, 'brief' => false],
         'quietStart' => '23:00',
         'quietEnd' => '07:00',
         'priceAlertsInQuiet' => false,
@@ -66,7 +66,7 @@ class PushController extends Controller
 
         if ($subscription) {
             // Keys can rotate; settings stay as they were unless sent.
-            $subscription->update([...$keys, ...$this->prefsColumns($prefs)]);
+            $subscription->update([...$keys, ...$this->prefsColumns($prefs, $subscription)]);
         } else {
             $subscription = PushSubscription::create([
                 'endpoint' => $endpoint,
@@ -93,7 +93,7 @@ class PushController extends Controller
                 return $this->invalid($validator->errors()->first());
             }
 
-            $columns = $this->prefsColumns($request->input('prefs', []));
+            $columns = $this->prefsColumns($request->input('prefs', []), $subscription);
 
             // A new brief time means today's brief can still come.
             if (array_key_exists('brief_time', $columns) && $columns['brief_time'] !== $subscription->brief_time) {
@@ -200,19 +200,28 @@ class PushController extends Controller
             'prefs.priceAlertsInQuiet' => ['sometimes', 'boolean'],
             'prefs.briefTime' => ['sometimes', 'nullable', 'regex:' . self::TIME],
             'prefs.currency' => ['sometimes', 'string', 'regex:/^[a-z]{3}$/'],
+            'prefs.watchCoins' => ['sometimes', 'array', 'max:' . PushSubscription::MAX_WATCH_COINS],
+            'prefs.watchCoins.*' => ['string', 'max:100', 'regex:/^[a-z0-9-]+$/'],
         ];
     }
 
-    /** Only the settings that were sent, as columns. */
-    private function prefsColumns(array $prefs): array
+    /**
+     * Only the settings that were sent, as columns. Categories that weren't
+     * sent keep their current value (or the default, for a new browser).
+     */
+    private function prefsColumns(array $prefs, ?PushSubscription $current = null): array
     {
         $columns = [];
 
         if (array_key_exists('categories', $prefs)) {
             $columns['categories'] = array_map('boolval', array_intersect_key(
-                [...self::DEFAULT_PREFS['categories'], ...$prefs['categories']],
+                [...self::DEFAULT_PREFS['categories'], ...($current->categories ?? []), ...$prefs['categories']],
                 array_flip(PushSubscription::CATEGORIES),
             ));
+        }
+
+        if (array_key_exists('watchCoins', $prefs)) {
+            $columns['watch_coins'] = array_values(array_unique($prefs['watchCoins']));
         }
 
         foreach ([

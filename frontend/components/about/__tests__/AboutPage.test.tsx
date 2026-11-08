@@ -54,7 +54,7 @@ describe('FeatureGrid', () => {
     render(<FeatureGrid features={features} />);
 
     const list = screen.getByRole('list');
-    expect(within(list).getAllByRole('link')).toHaveLength(2);
+    expect(within(list).getAllByRole('link')).toHaveLength(features.length - 1);
     expect(within(list).queryByText(features[2].title)).toBeNull();
   });
 });
