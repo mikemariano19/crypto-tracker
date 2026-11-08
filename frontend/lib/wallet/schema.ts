@@ -1,8 +1,15 @@
-import { z } from 'zod';
+import * as z from 'zod/mini';
+import en from 'zod/v4/locales/en.js';
 
 // Everything the wallet tracker saves, in one localStorage key. The schema
 // is the single source of truth: types are inferred from it, and anything
 // loaded or imported is checked against it before use.
+//
+// zod/mini instead of zod: the same checks at a fraction of the size, which
+// matters because Portfolio, Alerts and coin pages ship this code (and links
+// to them get prefetched). It has no messages of its own, so the English
+// ones are loaded: a failed import shows them to the user.
+z.config(en());
 
 export const STORAGE_KEY = 'cryptoTracker.wallets.v1';
 export const CURRENT_VERSION = 1;
@@ -19,7 +26,7 @@ const sortDir = z.enum(['asc', 'desc']);
 
 // Any lower-case ISO 4217 code ("usd", "eur", "jpy"). Was only usd/php, so
 // saved data from then still passes; the rates list says which are usable.
-export const currencySchema = z.string().regex(/^[a-z]{3}$/);
+export const currencySchema = z.string().check(z.regex(/^[a-z]{3}$/));
 
 export const holdingSortSchema = z.object({
   by: z.enum(['value', 'name', 'amount', 'change24h', 'price']),
@@ -32,30 +39,32 @@ export const walletSortSchema = z.object({
 });
 
 export const holdingSchema = z.object({
-  coinId: z.string().min(1).max(100),
-  symbol: z.string().min(1).max(20),
-  name: z.string().min(1).max(100),
-  image: z.url({ protocol: /^https$/ }).optional(),
-  amount: z.string().regex(AMOUNT_PATTERN),
+  coinId: z.string().check(z.minLength(1), z.maxLength(100)),
+  symbol: z.string().check(z.minLength(1), z.maxLength(20)),
+  name: z.string().check(z.minLength(1), z.maxLength(100)),
+  image: z.optional(z.url({ protocol: /^https$/ })),
+  amount: z.string().check(z.regex(AMOUNT_PATTERN)),
   updatedAt: z.iso.datetime(),
 });
 
 export const walletSchema = z
   .object({
-    id: z.string().min(1).max(64),
-    name: z.string().trim().min(1).max(WALLET_NAME_MAX),
-    note: z.string().max(WALLET_NOTE_MAX).optional(),
+    id: z.string().check(z.minLength(1), z.maxLength(64)),
+    name: z.string().check(z.trim(), z.minLength(1), z.maxLength(WALLET_NAME_MAX)),
+    note: z.optional(z.string().check(z.maxLength(WALLET_NOTE_MAX))),
     // Exchange or wallet it's held at ("cg:binance", "app:ledger"), for its
     // logo. Optional, so wallets saved before it existed stay valid.
-    provider: z.string().regex(PROVIDER_ID_PATTERN).optional(),
+    provider: z.optional(z.string().check(z.regex(PROVIDER_ID_PATTERN))),
     createdAt: z.iso.datetime(),
     collapsed: z.boolean(),
     holdingSort: holdingSortSchema,
     holdings: z.array(holdingSchema),
   })
-  .refine(
-    (wallet) => new Set(wallet.holdings.map((holding) => holding.coinId)).size === wallet.holdings.length,
-    { message: 'A coin appears twice in one wallet', path: ['holdings'] }
+  .check(
+    z.refine(
+      (wallet) => new Set(wallet.holdings.map((holding) => holding.coinId)).size === wallet.holdings.length,
+      { message: 'A coin appears twice in one wallet', path: ['holdings'] }
+    )
   );
 
 export const storedStateSchema = z
@@ -65,9 +74,11 @@ export const storedStateSchema = z
     walletSort: walletSortSchema,
     wallets: z.array(walletSchema),
   })
-  .refine(
-    (state) => new Set(state.wallets.map((wallet) => wallet.name.toLowerCase())).size === state.wallets.length,
-    { message: 'Two wallets have the same name', path: ['wallets'] }
+  .check(
+    z.refine(
+      (state) => new Set(state.wallets.map((wallet) => wallet.name.toLowerCase())).size === state.wallets.length,
+      { message: 'Two wallets have the same name', path: ['wallets'] }
+    )
   );
 
 export type Currency = z.infer<typeof currencySchema>;
