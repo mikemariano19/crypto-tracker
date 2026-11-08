@@ -1,6 +1,6 @@
 import useSWR from 'swr';
 import { useEffect } from 'react';
-import { getEcho } from '@/lib/echo';
+import { listen } from '@/lib/echo';
 import { apiUrl, fetchApi } from '@/lib/api';
 
 type TradingVolume = {
@@ -17,19 +17,12 @@ export function useTradingVolume() {
         }
     });
 
-    useEffect(() => {
-        const echo = getEcho();
-        if (!echo) return;
-
-        const channel = echo.channel('trading-volume');
-        channel.listen('.trading-volume.updated', (event: { stats: TradingVolume }) => {
+    useEffect(
+        () => listen<{ stats: TradingVolume }>('trading-volume', '.trading-volume.updated', (event) => {
             mutate(event.stats, false); // update cache without refetch
-        });
-
-        return () => {
-            channel.stopListening('.trading-volume.updated');
-        };
-    }, [mutate]);
+        }),
+        [mutate],
+    );
 
     return {
         volume_24h: data?.volume_24h,

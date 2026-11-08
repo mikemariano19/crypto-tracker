@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSWRConfig } from 'swr';
-import { getEcho } from '@/lib/echo';
+import { listen } from '@/lib/echo';
 import { GLOBAL_SENTIMENT_KEY } from '@/hooks/useGlobalSentiment';
 import type { NewsBatchPublishedEvent } from '@/types/news';
 
@@ -12,25 +12,17 @@ export function useNewsRealtime() {
   const { mutate } = useSWRConfig();
   const [newCount, setNewCount] = useState(0);
 
-  useEffect(() => {
-    const echo = getEcho();
-    if (!echo) return;
-
-    const channel = echo.channel('news');
-
-    channel.listen('.news.batch.published', (event: NewsBatchPublishedEvent) => {
+  useEffect(
+    () => listen<NewsBatchPublishedEvent>('news', '.news.batch.published', (event) => {
       mutate(GLOBAL_SENTIMENT_KEY);
       mutate((key) => typeof key === 'string' && key.includes('/api/news/sentiment/trend'));
 
       if (event.newCount > 0) {
         setNewCount((count) => count + event.newCount);
       }
-    });
-
-    return () => {
-      channel.stopListening('.news.batch.published');
-    };
-  }, [mutate]);
+    }),
+    [mutate],
+  );
 
   const clearNewCount = useCallback(() => setNewCount(0), []);
 

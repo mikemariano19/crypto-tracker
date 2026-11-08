@@ -1,6 +1,6 @@
 import useSWR from 'swr';
 import { useEffect } from 'react';
-import { getEcho } from '@/lib/echo';
+import { listen } from '@/lib/echo';
 import { apiUrl, fetchApi } from '@/lib/api';
 
 
@@ -67,16 +67,9 @@ export function useCryptoPrices(page = 1) {
         // Live pushes only carry the top coins.
         if (page !== 1) return;
 
-        const echo = getEcho();
-        if (!echo) return;
-
-        const channel = echo.channel('crypto-prices');
-
-        channel.listen('.prices.updated', (event: { prices: CryptoPrice[] }) => {
+        return listen<{ prices: CryptoPrice[] }>('crypto-prices', '.prices.updated', (event) => {
             mutate(event.prices, false); // update cache without refetch
-        });
-
-        return () => echo.leaveChannel('crypto-prices');
+        }, { leave: true });
     }, [mutate, page]);
 
 

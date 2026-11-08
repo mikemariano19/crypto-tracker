@@ -15,7 +15,7 @@ import CoinSearch from "@/components/coin/CoinSearch";
 import { Star } from "lucide-react";
 import { fetchApi } from "@/lib/api";
 import Image from "next/image";
-import { useCallback, useRef } from "react";
+import { startTransition, useCallback, useEffect, useRef, useState } from "react";
 import {
   Table,
   TableBody,
@@ -68,6 +68,9 @@ function PercentageCell({
   );
 }
 
+// Enough rows to fill a phone or laptop screen below the heading.
+const FIRST_ROWS = 12;
+
 function parsePage(value: string | null) {
   const page = Number(value);
   return Number.isInteger(page) && page >= 1 && page <= MAX_COIN_PAGES ? page : 1;
@@ -91,6 +94,18 @@ export default function CryptoTable() {
   const isLoading = isFavoritesView ? favoriteCoins.isLoading : allCoins.isLoading;
   const isError = isFavoritesView ? favoriteCoins.isError : allCoins.isError;
 
+  // Rendering 50 rows at once is one long task on a phone, blocking taps right
+  // as the page loads. The first screenful renders with the data; the rest
+  // follows as a transition, which React splits into small interruptible slices.
+  const [showAllRows, setShowAllRows] = useState(false);
+  const hasMoreRows = rows.length > FIRST_ROWS;
+
+  useEffect(() => {
+    if (hasMoreRows && !showAllRows) startTransition(() => setShowAllRows(true));
+  }, [hasMoreRows, showAllRows]);
+
+  const shownRows = showAllRows ? rows : rows.slice(0, FIRST_ROWS);
+
   // keepPreviousData shows the old page while the new one loads.
   const isChangingPage = !isFavoritesView && allCoins.isLoading && allCoins.prices.length > 0;
   const firstRank = (page - 1) * COINS_PER_PAGE + 1;
@@ -104,7 +119,8 @@ export default function CryptoTable() {
 
   const goToPage = (target: number) => {
     router.push(target === 1 ? "/" : `/?page=${target}`, { scroll: false });
-    topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Back to the heading (outside this component), so the title stays in view.
+    (document.getElementById("market") ?? topRef.current)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   // Warm the browser and API caches on hover so the click feels instant.
@@ -156,21 +172,15 @@ export default function CryptoTable() {
     }`;
 
   return (
-    <div className="w-full pt-2">
+    <div className="w-full">
 
-      {/* Header + toolbar (scroll target when changing pages, clear of the sticky navbar) */}
+      {/* Toolbar under the page's MarketHeading (scroll fallback, clear of the sticky navbar) */}
       <div ref={topRef} className="mb-3 flex scroll-mt-20 flex-col gap-3">
-        <div>
-          <h2 className="text-lg font-bold">
-            Cryptocurrency Market
-          </h2>
-
-          <p className="text-xs text-muted-foreground">
-            {isFavoritesView
-              ? "Your favorite coins, saved in this browser"
-              : `Top cryptocurrencies by market capitalization · Showing #${firstRank}–${firstRank + COINS_PER_PAGE - 1}`}
-          </p>
-        </div>
+        <p className="h-4 text-xs text-muted-foreground">
+          {isFavoritesView
+            ? "Your favorite coins, saved in this browser"
+            : `Showing #${firstRank}–${firstRank + COINS_PER_PAGE - 1}`}
+        </p>
 
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div role="tablist" aria-label="Table view" className="inline-flex w-fit rounded-lg bg-gray-100 p-1">
@@ -298,7 +308,7 @@ export default function CryptoTable() {
 
           <TableBody>
 
-            {rows.map((coin, index) => {
+            {shownRows.map((coin, index) => {
 
               const change1h =
                 coin.price_change_percentage_1h_in_currency;

@@ -1,35 +1,19 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { LineChart as LineChartIcon } from "lucide-react";
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import SidebarCard from "@/components/news/SidebarCard";
+import type { ChartPoint } from "@/components/news/SentimentTrendLines";
 import { SENTIMENT_STYLES } from "@/lib/formatNews";
 import type { SentimentTrendPoint } from "@/types/news";
 
-type ChartPoint = SentimentTrendPoint & { time: number };
-
-function TrendTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: ChartPoint }> }) {
-  const point = payload?.[0]?.payload;
-  if (!active || !point) return null;
-
-  return (
-    <div className="rounded-lg border bg-white px-3 py-2 text-xs shadow-lg">
-      <p className="mb-1 font-semibold text-gray-900">
-        {new Date(point.time).toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit" })}
-      </p>
-      {(["bullish", "neutral", "bearish"] as const).map((label) => (
-        <p key={label} className="flex items-center justify-between gap-4 text-gray-600">
-          <span className="inline-flex items-center gap-1.5 capitalize">
-            <span className="h-2 w-2 rounded-full" style={{ background: SENTIMENT_STYLES[label].line }} />
-            {label}
-          </span>
-          <span className="font-semibold tabular-nums text-gray-900">{point[label]}%</span>
-        </p>
-      ))}
-    </div>
-  );
-}
+// Recharts is a large library, so it downloads separately instead of with
+// the page; the card, title and legend still render straight away.
+const SentimentTrendLines = dynamic(() => import("@/components/news/SentimentTrendLines"), {
+  ssr: false,
+  loading: () => <div className="h-full w-full animate-pulse rounded-lg bg-muted" />,
+});
 
 function LegendItem({ label, text }: { label: "bullish" | "bearish"; text: string }) {
   return (
@@ -67,50 +51,7 @@ export default function SentimentTrendChart({
             <LegendItem label="bearish" text={`Bearish${latest ? ` ${latest.bearish}%` : ""}`} />
           </div>
           <div className="h-32 w-full" role="img" aria-label={latest ? `Latest: ${latest.bullish} percent bullish, ${latest.bearish} percent bearish` : undefined}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
-                <XAxis
-                  dataKey="time"
-                  type="number"
-                  scale="time"
-                  domain={["dataMin", "dataMax"]}
-                  tickFormatter={(value: number) => new Date(value).toLocaleDateString(undefined, { weekday: "short" })}
-                  tick={{ fontSize: 10, fill: "var(--chart-axis)" }}
-                  tickLine={false}
-                  axisLine={false}
-                  minTickGap={24}
-                />
-                <YAxis
-                  domain={[0, 100]}
-                  ticks={[0, 50, 100]}
-                  tickFormatter={(value: number) => `${value}%`}
-                  tick={{ fontSize: 10, fill: "var(--chart-axis)" }}
-                  tickLine={false}
-                  axisLine={false}
-                  width={34}
-                />
-                <Tooltip content={<TrendTooltip />} cursor={{ stroke: "var(--chart-axis)", strokeDasharray: "4 4" }} isAnimationActive={false} />
-                <Line
-                  type="monotone"
-                  dataKey="bullish"
-                  stroke={SENTIMENT_STYLES.bullish.line}
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={{ r: 4, stroke: "var(--card)", strokeWidth: 2 }}
-                  isAnimationActive={false}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="bearish"
-                  stroke={SENTIMENT_STYLES.bearish.line}
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={{ r: 4, stroke: "var(--card)", strokeWidth: 2 }}
-                  isAnimationActive={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <SentimentTrendLines data={data} />
           </div>
         </>
       ) : isLoading ? (
