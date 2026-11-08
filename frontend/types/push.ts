@@ -1,6 +1,6 @@
 // Shapes returned by /api/push/* (see backend PushController).
 
-export type PushCategory = 'price' | 'market' | 'brief';
+export type PushCategory = 'price' | 'moves' | 'market' | 'news' | 'brief';
 
 export interface PushPrefs {
   categories: Record<PushCategory, boolean>;
@@ -11,6 +11,8 @@ export interface PushPrefs {
   priceAlertsInQuiet: boolean;
   briefTime: string | null;
   currency: string;
+  /** Favorites and wallet coins, by ID only, for big-move and level alerts. */
+  watchCoins: string[];
 }
 
 export interface PriceAlert {

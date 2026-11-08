@@ -41,6 +41,36 @@ return [
         'cooldown_hours' => 12,
     ],
 
+    // Big moves on a subscriber's own coins (favorites and wallet), over 4h.
+    'moves' => [
+        'pct_4h' => (float) env('PUSH_MOVE_PCT_4H', 8.0),
+        // One alert per coin and direction in this window, however long the move lasts.
+        'cooldown_hours' => 4,
+    ],
+
+    // Support or resistance breaks on watched coins, from the 7D chart's
+    // levels (30 days of 4-hour candles). Weak levels break all the time, so
+    // only moderate and strong ones count.
+    'levels' => [
+        'strengths' => ['moderate', 'strong'],
+        // Charts fetched per run for coins nobody has viewed lately, so a long
+        // watch list can't use up the CoinGecko budget the site itself needs.
+        'max_fetches_per_run' => 2,
+        // One alert per coin and direction in this window.
+        'cooldown_hours' => 12,
+    ],
+
+    // Breaking high-impact news and market mood shifts, both read from the
+    // news pipeline's existing analysis: no new AI calls.
+    'news' => [
+        // A story older than this when first seen isn't breaking news.
+        'max_age_hours' => 12,
+        // News pushes per subscriber per day, inside the overall cap.
+        'daily_cap' => 2,
+        // A mood flipping back and forth sends one alert in this window.
+        'mood_cooldown_hours' => 12,
+    ],
+
     // A brief more than this late (the server slept through its time) is
     // skipped for the day rather than arriving in the afternoon.
     'brief_late_after_minutes' => 180,

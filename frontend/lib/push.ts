@@ -85,6 +85,19 @@ export async function createSubscription(publicKey: string): Promise<PushSubscri
     ?? registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) });
 }
 
+/**
+ * What to tell someone when the browser couldn't set up push after they
+ * allowed notifications. Brave turns off the push service by default, so
+ * it's the usual cause there, and only a setting fixes it.
+ */
+export function pushSetupError(browser: string): string {
+  if (browser === 'brave') {
+    return 'Brave blocks web notifications by default. Open brave://settings/privacy, turn on "Use Google services for push messaging", restart Brave and try again.';
+  }
+
+  return 'This browser could not set up notifications. Please try again, or use Chrome or Edge.';
+}
+
 /** Older Safari and Chrome only speak the draft encoding. */
 export function contentEncoding(): 'aes128gcm' | 'aesgcm' {
   const supported = (PushManager as unknown as { supportedContentEncodings?: string[] }).supportedContentEncodings;

@@ -12,7 +12,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class PushSubscription extends Model
 {
-    public const CATEGORIES = ['price', 'market', 'brief'];
+    public const CATEGORIES = ['price', 'moves', 'market', 'news', 'brief'];
+
+    // Favorites plus wallet coins rarely pass this; it bounds one price call.
+    public const MAX_WATCH_COINS = 50;
 
     protected $guarded = ['id'];
 
@@ -22,6 +25,7 @@ class PushSubscription extends Model
     {
         return [
             'categories' => 'array',
+            'watch_coins' => 'array',
             'price_alerts_in_quiet' => 'boolean',
             'last_brief_on' => 'date',
         ];
@@ -88,6 +92,7 @@ class PushSubscription extends Model
             'priceAlertsInQuiet' => $this->price_alerts_in_quiet,
             'briefTime' => $this->brief_time,
             'currency' => $this->currency,
+            'watchCoins' => array_values($this->watch_coins ?? []),
         ];
     }
 }

@@ -144,10 +144,10 @@ Artisan::command('push:check', function (PushCheck $check) {
         return 0;
     }
 
-    $this->info("Sent: {$result['price']} price, {$result['market']} market, {$result['brief']} brief.");
+    $this->info("Sent: {$result['price']} price, {$result['moves']} coin moves, {$result['market']} market, {$result['news']} news, {$result['brief']} brief.");
 
     return 0;
-})->purpose('Send due price alerts, market alerts and daily briefs (no AI)');
+})->purpose('Send due price alerts, coin moves, market and news alerts, and daily briefs (no AI)');
 
 // Price and market alerts need a quicker beat than the news schedule.
 Schedule::command('push:check')->everyTenMinutes()->withoutOverlapping();

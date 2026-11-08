@@ -37,14 +37,21 @@ class Notifier
             return false;
         }
 
+        if ($category === 'news' && $this->sentToday($subscription, 'news') >= (int) config('push.news.daily_cap')) {
+            return false;
+        }
+
         return $this->sentToday($subscription) < (int) config('push.daily_cap');
     }
 
-    /** Since midnight on the subscriber's own clock, the brief not counted. */
-    public function sentToday(PushSubscription $subscription): int
+    /**
+     * Since midnight on the subscriber's own clock: one category, or every
+     * category but the brief.
+     */
+    public function sentToday(PushSubscription $subscription, ?string $category = null): int
     {
         return $subscription->notifications()
-            ->where('category', '!=', 'brief')
+            ->when($category, fn ($query) => $query->where('category', $category), fn ($query) => $query->where('category', '!=', 'brief'))
             ->where('sent_at', '>=', $subscription->localNow()->startOfDay()->utc())
             ->count();
     }

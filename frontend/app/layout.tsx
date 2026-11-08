@@ -2,6 +2,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter as FontSans } from "next/font/google";
 import "./globals.css";
+import WatchCoinsSync from "@/components/alerts/WatchCoinsSync";
 import BottomNav from "@/components/coin/BottomNav";
 import GlobalStats from "@/components/coin/GlobalStats";
 import NavBar from "@/components/coin/NavBar";
@@ -64,6 +65,7 @@ export default function RootLayout({
 
           <SiteFooter />
           <BottomNav />
+          <WatchCoinsSync />
         </Providers>
       </body>
     </html>

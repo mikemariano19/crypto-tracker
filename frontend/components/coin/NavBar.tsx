@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, Coins } from "lucide-react";
 import { isNavItemActive, navItems } from "@/components/coin/navItems";
+import InstallButton from "@/components/install/InstallButton";
 import ThemeToggle from "@/components/ThemeToggle";
 
 export default function NavBar() {
@@ -100,6 +101,8 @@ export default function NavBar() {
 
         </div>
 
+
+        <InstallButton />
 
         {/* Settings and the history of sent alerts, for anyone who missed one. */}
         <Link

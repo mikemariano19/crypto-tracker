@@ -58,7 +58,8 @@ class PushApiTest extends TestCase
         $this->subscribe()
             ->assertOk()
             ->assertJsonPath('data.subscribed', true)
-            ->assertJsonPath('data.prefs.categories', ['price' => true, 'market' => false, 'brief' => false])
+            ->assertJsonPath('data.prefs.categories', ['price' => true, 'moves' => false, 'market' => false, 'news' => false, 'brief' => false])
+            ->assertJsonPath('data.prefs.watchCoins', [])
             ->assertJsonPath('data.prefs.timezone', 'Asia/Manila')
             ->assertJsonPath('data.prefs.quietStart', '23:00')
             ->assertJsonPath('data.prefs.quietEnd', '07:00')
@@ -161,10 +162,37 @@ class PushApiTest extends TestCase
             'briefTime' => '07:30',
             'priceAlertsInQuiet' => true,
         ]])->assertOk()
-            ->assertJsonPath('data.prefs.categories', ['price' => true, 'market' => false, 'brief' => true])
+            ->assertJsonPath('data.prefs.categories', ['price' => true, 'moves' => false, 'market' => false, 'news' => false, 'brief' => true])
             ->assertJsonPath('data.prefs.quietStart', null)
             ->assertJsonPath('data.prefs.briefTime', '07:30')
             ->assertJsonPath('data.prefs.priceAlertsInQuiet', true);
+    }
+
+    public function test_switching_one_category_leaves_the_others_as_they_were(): void
+    {
+        $this->subscribe();
+        $this->postJson('/api/push/prefs', ['endpoint' => self::ENDPOINT, 'prefs' => ['categories' => ['brief' => true]]]);
+
+        $this->postJson('/api/push/prefs', ['endpoint' => self::ENDPOINT, 'prefs' => ['categories' => ['news' => true]]])
+            ->assertOk()
+            ->assertJsonPath('data.prefs.categories', ['price' => true, 'moves' => false, 'market' => false, 'news' => true, 'brief' => true]);
+    }
+
+    public function test_watched_coins_are_ids_only_and_capped(): void
+    {
+        $this->subscribe();
+
+        $this->postJson('/api/push/prefs', ['endpoint' => self::ENDPOINT, 'prefs' => ['watchCoins' => ['bitcoin', 'solana', 'bitcoin']]])
+            ->assertOk()
+            ->assertJsonPath('data.prefs.watchCoins', ['bitcoin', 'solana']);
+
+        foreach ([['Bitcoin!'], array_map(fn (int $i) => "coin-{$i}", range(1, 51)), 'bitcoin'] as $bad) {
+            $this->postJson('/api/push/prefs', ['endpoint' => self::ENDPOINT, 'prefs' => ['watchCoins' => $bad]])->assertStatus(422);
+        }
+
+        $this->postJson('/api/push/prefs', ['endpoint' => self::ENDPOINT, 'prefs' => ['watchCoins' => []]])
+            ->assertOk()
+            ->assertJsonPath('data.prefs.watchCoins', []);
     }
 
     public function test_only_a_new_brief_time_lets_todays_brief_come_again(): void
