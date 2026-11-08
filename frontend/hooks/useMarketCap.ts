@@ -1,6 +1,6 @@
 import useSWR from 'swr';
 import { useEffect } from 'react';
-import { getEcho } from '@/lib/echo';
+import { listen } from '@/lib/echo';
 import { apiUrl, fetchApi } from '@/lib/api';
 
 type MarketCap = {
@@ -20,19 +20,12 @@ export function useMarketCap() {
         }
     });
 
-    useEffect(() => {
-        const echo = getEcho();
-        if (!echo) return;
-
-        const channel = echo.channel('market-stats');
-        channel.listen('.market-stats.updated', (event: { stats: MarketCap }) => {
+    useEffect(
+        () => listen<{ stats: MarketCap }>('market-stats', '.market-stats.updated', (event) => {
             mutate(event.stats, false); // update cache without refetch
-        });
-
-        return () => {
-            channel.stopListening('.market-stats.updated');
-        };
-    }, [mutate]);
+        }),
+        [mutate],
+    );
 
     return {
         marketCap: data?.market_cap || null,

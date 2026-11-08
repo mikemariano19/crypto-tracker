@@ -9,6 +9,9 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
     poweredByHeader: false,
+    // Not experimental.inlineCss: it put the 93 KB stylesheet into the HTML
+    // three times (a <style> tag plus twice in the RSC payload), which cost
+    // more parse time than the round trip it saves.
     allowedDevOrigins: [
         "192.168.1.15",
         "localhost",

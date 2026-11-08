@@ -1,12 +1,14 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import { Download } from "lucide-react";
-import InstallSteps from "@/components/install/InstallSteps";
-import Modal from "@/components/portfolio/Modal";
 import { useInstallApp } from "@/hooks/useInstallApp";
 import { currentBrowser, installGuide, type BrowserName, type InstallGuide } from "@/lib/install";
 import { cn } from "@/lib/utils";
+
+// The header is on every page, so the dialog downloads only when it's opened.
+const InstallDialog = dynamic(() => import("@/components/install/InstallDialog"), { ssr: false });
 
 /**
  * Install button in the header, for phones and tablets: laptop and desktop
@@ -46,16 +48,7 @@ export default function InstallButton({ className }: { className?: string }) {
         <Download className="h-4 w-4" aria-hidden="true" />
       </button>
 
-      {steps && (
-        <Modal
-          open
-          onOpenChange={(open) => !open && setSteps(null)}
-          title="Install Crypto Tracker"
-          description="Open it like an app, in its own window, with price alerts on this device."
-        >
-          <InstallSteps guide={steps.guide} browser={steps.browser} />
-        </Modal>
-      )}
+      {steps && <InstallDialog guide={steps.guide} browser={steps.browser} onClose={() => setSteps(null)} />}
     </>
   );
 }

@@ -1,6 +1,6 @@
 import useSWR from 'swr';
 import { useEffect } from 'react';
-import { getEcho } from '@/lib/echo';
+import { listen } from '@/lib/echo';
 import { apiUrl, fetchApi } from '@/lib/api';
 import type { RankedCoin } from '@/types/crypto';
 
@@ -22,23 +22,12 @@ export function useTopGainers() {
     }
   );
 
-  useEffect(() => {
-    const echo = getEcho();
-    if (!echo) return;
-
-    const channel = echo.channel('top-gainers');
-
-    channel.listen(
-      '.top-gainers.updated',
-      (event: { stats: RankedCoin[] }) => {
-        mutate(event.stats, false); // update cache without refetch
-      }
-    );
-
-    return () => {
-      channel.stopListening('.top-gainers.updated');
-    };
-  }, [mutate]);
+  useEffect(
+    () => listen<{ stats: RankedCoin[] }>('top-gainers', '.top-gainers.updated', (event) => {
+      mutate(event.stats, false); // update cache without refetch
+    }),
+    [mutate],
+  );
 
   return {
     coins: data ?? [],

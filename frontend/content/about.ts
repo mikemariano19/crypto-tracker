@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { SITE } from '@/content/site';
 
 // Everything the About page says lives here, so it can be edited without
 // touching components. The schema below is checked at build time: a
@@ -78,13 +79,13 @@ export type AboutContent = z.infer<typeof aboutSchema>;
 
 export const about: AboutContent = {
   app: {
-    name: 'CryptoTracker',
+    name: SITE.name,
     tagline: 'Track crypto prices, market news, AI chart analysis and your holdings in one place, with the alerts you choose.',
     description:
       'CryptoTracker is a free market dashboard for crypto. It shows live prices and candle charts, groups the day’s market-moving news into single stories with AI sentiment, explains a coin’s chart with AI on request, tracks what you hold across wallets and exchanges, and sends the alerts you turn on. No account needed, and it installs on your phone like an app.',
     badge: 'Personal portfolio project',
     version: '0.2.0',
-    lastUpdated: '2026-11-08',
+    lastUpdated: SITE.lastUpdated,
     repoUrl: 'https://github.com/mikemariano19/crypto-tracker',
   },
 
@@ -168,8 +169,7 @@ export const about: AboutContent = {
   newsNote:
     'Every headline links to its original publisher. The feed shows the headline and either the outlet’s own short description or an AI-written summary, never the full article.',
 
-  // CoinGecko's attribution guide: visible text, linked, no implied partnership.
-  attribution: { text: 'Data provided by CoinGecko', url: 'https://www.coingecko.com' },
+  attribution: { ...SITE.attribution },
 
   ai: {
     model: 'Claude Haiku 5.5',
