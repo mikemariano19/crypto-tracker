@@ -29,15 +29,26 @@ import UpdatedAgo from "@/components/UpdatedAgo";
 import InfoTip from "@/components/InfoTip";
 import AlertButton from "@/components/alerts/AlertButton";
 import FavoriteButton from "@/components/FavoriteButton";
-import CoinConverter from "@/components/coin/CoinConverter";
 import CurrencyPicker from "@/components/coin/CurrencyPicker";
 import { useDisplayCurrency } from "@/hooks/useDisplayCurrency";
-import CoinHoldings from "@/components/coin/CoinHoldings";
 import CoinLinks from "@/components/coin/CoinLinks";
 import CoinMarkets from "@/components/coin/CoinMarkets";
 import CoinNews from "@/components/coin/CoinNews";
 import { METRIC_INFO, type MetricInfo } from "@/lib/metricInfo";
 import type { CoinProfile } from "@/types/crypto";
+import dynamic from "next/dynamic";
+
+// The converter and "In your portfolio" cards are the only parts of this page
+// that need the wallet code (zod, decimal.js). Loading them separately keeps
+// that code out of the page bundle, so prefetching a coin link (from the
+// home page's Trending and Top Gainers cards) stays light. They sit below the
+// chart, so their brief placeholder is rarely on screen.
+function CardPlaceholder() {
+  return <div className="h-48 animate-pulse rounded-xl bg-white shadow-sm" aria-hidden="true" />;
+}
+
+const CoinConverter = dynamic(() => import("@/components/coin/CoinConverter"), { ssr: false, loading: CardPlaceholder });
+const CoinHoldings = dynamic(() => import("@/components/coin/CoinHoldings"), { ssr: false, loading: CardPlaceholder });
 
 function StatCard({
   icon,

@@ -1,22 +1,23 @@
-import { z } from 'zod';
+import * as z from 'zod/mini';
 
 // Wallet-tracker prices: what /api/prices returns, plus the last good copy
-// kept in this browser for when the API can't be reached.
+// kept in this browser for when the API can't be reached. zod/mini to match
+// lib/wallet/schema.ts, so pages carry one small zod, not two.
 
 export const PRICES_STORAGE_KEY = 'cryptoTracker.prices.v1';
 
 const quoteSchema = z.object({
-  usd: z.number().nullable(),
-  php: z.number().nullable(),
-  usd_24h_change: z.number().nullable(),
-  php_24h_change: z.number().nullable(),
-  last_updated_at: z.number().nullable(),
+  usd: z.nullable(z.number()),
+  php: z.nullable(z.number()),
+  usd_24h_change: z.nullable(z.number()),
+  php_24h_change: z.nullable(z.number()),
+  last_updated_at: z.nullable(z.number()),
 });
 
 /** id → quote. [] is accepted too, in case an empty map is ever encoded as a PHP list. */
 export const pricesSchema = z.union([
   z.record(z.string(), quoteSchema),
-  z.array(z.never()).transform((): Record<string, PriceQuote> => ({})),
+  z.pipe(z.array(z.never()), z.transform((): Record<string, PriceQuote> => ({}))),
 ]);
 
 const savedPricesSchema = z.object({
