@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/IntentLink";
 import { usePathname } from "next/navigation";
 import { Bell, Coins } from "lucide-react";
 import { isNavItemActive, navItems } from "@/components/coin/navItems";

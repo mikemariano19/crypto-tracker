@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/IntentLink";
 import { ArrowDown, ArrowUp, Gauge, PieChart } from "lucide-react";
 
 import useGlobalStats from "@/hooks/useGlobalStats";

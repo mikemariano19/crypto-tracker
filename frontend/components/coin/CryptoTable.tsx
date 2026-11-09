@@ -6,6 +6,7 @@ import {
   coinsPageKey,
   useCoinsByIds,
   useCryptoPrices,
+  type CryptoPrice,
 } from "@/hooks/useCryptoPrices";
 import { useFavorites } from "@/hooks/useFavorites";
 import Pagination from "@/components/Pagination";
@@ -76,15 +77,40 @@ function parsePage(value: string | null) {
   return Number.isInteger(page) && page >= 1 && page <= MAX_COIN_PAGES ? page : 1;
 }
 
-export default function CryptoTable() {
-  const router = useRouter();
+type CryptoTableProps = {
+  /** Page 1 as the server rendered it, so the rows show without a fetch. */
+  initialCoins?: CryptoPrice[];
+};
+
+export default function CryptoTable({ initialCoins }: CryptoTableProps) {
   const searchParams = useSearchParams();
-  // The page lives in the URL so refresh, sharing and Back all work.
-  const page = parsePage(searchParams.get("page"));
-  const isFavoritesView = searchParams.get("view") === "favorites";
+
+  return (
+    <MarketTable
+      // The page lives in the URL so refresh, sharing and Back all work.
+      page={parsePage(searchParams.get("page"))}
+      isFavoritesView={searchParams.get("view") === "favorites"}
+      initialCoins={initialCoins}
+    />
+  );
+}
+
+/**
+ * The table for a known page and view. Split from CryptoTable because the
+ * static HTML can't read ?page=: the home page renders this for page 1 as
+ * CryptoTable's Suspense fallback, so the prerendered HTML has real rows.
+ * The browser then renders CryptoTable in its place (the fallback is never
+ * hydrated), which on page 1 looks identical.
+ */
+export function MarketTable({
+  page,
+  isFavoritesView,
+  initialCoins,
+}: CryptoTableProps & { page: number; isFavoritesView: boolean }) {
+  const router = useRouter();
 
   const { favorites } = useFavorites();
-  const allCoins = useCryptoPrices(page);
+  const allCoins = useCryptoPrices(page, initialCoins);
   const favoriteCoins = useCoinsByIds(isFavoritesView ? favorites : []);
 
   const rows = isFavoritesView

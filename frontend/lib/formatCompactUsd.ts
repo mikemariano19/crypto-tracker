@@ -1,10 +1,13 @@
+import { formatDecimal } from "@/lib/formatDecimal";
+
 /**
- * The exact whole-dollar amount: $2,850,123,456,789.
+ * The exact whole-dollar amount: $2,850,123,456,789. Rendered on the home
+ * page's first paint, so it avoids Intl (see formatDecimal).
  */
 export function formatFullUsd(value: number | null | undefined): string | undefined {
   if (value == null || !Number.isFinite(value)) return undefined;
 
-  return `$${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+  return `$${formatDecimal(value, 0, 0)}`;
 }
 
 /**
