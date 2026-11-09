@@ -52,9 +52,15 @@ export function useCoinsByIds(ids: string[]) {
     };
 }
 
-export function useCryptoPrices(page = 1) {
+/**
+ * One page of the market table. `initial` is page 1 as the server rendered
+ * it: shown until the first fetch lands, so the table never starts empty.
+ */
+export function useCryptoPrices(page = 1, initial?: CryptoPrice[]) {
+    const fallbackData = page === 1 ? initial : undefined;
 
     const { data, mutate, error, isLoading, isValidating } = useSWR<CryptoPrice[]>(coinsPageKey(page), fetchApi, {
+        fallbackData,
         refreshInterval: 30_000,
         revalidateOnFocus: false,
         keepPreviousData: true,  // ← key: never wipe existing data on refetch
@@ -77,7 +83,9 @@ export function useCryptoPrices(page = 1) {
     return {
         prices: data ?? [],
         changePercentage: data?.[0]?.price_change_percentage_24h ?? 0,
-        isLoading,
+        // SWR counts fallback data as still loading, which would dim the table
+        // as if it were changing page. With server rows there's nothing to wait for.
+        isLoading: isLoading && fallbackData === undefined,
         isValidating,
         isError: !!error,
         isStale: false,

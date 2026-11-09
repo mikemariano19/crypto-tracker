@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/IntentLink";
 import { ArrowDown, ArrowUp, ChevronRight, RefreshCw } from "lucide-react";
 
 import {

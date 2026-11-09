@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/IntentLink";
 import ExternalLink from "@/components/ExternalLink";
 import { SITE } from "@/content/site";
 
